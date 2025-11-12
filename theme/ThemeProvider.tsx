@@ -34,7 +34,7 @@ const STORAGE_KEY = '@theme-mode';
 type Ctx = {
   mode: Mode;
   setMode: (m: Mode) => void;
-  toggleMode: () => void; // light <-> dark (system stays system)
+  toggleMode: () => void;
   theme: MD3Theme;
 };
 
@@ -69,8 +69,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     () => ({
       mode,
       setMode,
-      toggleMode: () =>
-        setMode((prev) => (prev === 'dark' ? 'light' : prev === 'light' ? 'dark' : 'system')),
+      toggleMode: () => setMode((prev) => (prev === 'dark' ? 'light' : 'dark')),
       theme,
     }),
     [mode, theme],

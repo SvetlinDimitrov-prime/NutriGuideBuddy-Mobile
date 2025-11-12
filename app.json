@@ -7,16 +7,16 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "nutri-guide-buddy",
-    "experiments": { "typedRoutes": true },
+    "experiments": {
+      "typedRoutes": true
+    },
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "UIViewControllerBasedStatusBarAppearance": true
-      }
+      "supportsTablet": true
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.NutriGuideBuddyMobile"
     },
     "web": {
       "bundler": "metro"

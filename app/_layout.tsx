@@ -6,7 +6,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Portal } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
@@ -45,9 +44,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.flex} onLayout={onLayout}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <Portal.Host>
-            <Slot />
-          </Portal.Host>
+          <Slot />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
