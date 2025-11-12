@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "NutriGuideBuddy-Mobile",
+    "slug": "NutriGuideBuddy-Mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "nutri-guide-buddy",
+    "experiments": { "typedRoutes": true },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true
+      }
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router"],
+    "assetBundlePatterns": ["**/*"]
+  }
+}
