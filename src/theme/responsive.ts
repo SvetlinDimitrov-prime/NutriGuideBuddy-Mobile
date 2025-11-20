@@ -3,10 +3,10 @@ import { useWindowDimensions } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 
 export const BREAKPOINTS = {
-  sm: 0, // < 600
-  md: 600, // >= 600
-  lg: 900, // >= 900
-  xl: 1200, // >= 1200
+  sm: 0,
+  md: 600,
+  lg: 900,
+  xl: 1200,
 } as const;
 
 export type BreakpointKey = 'sm' | 'md' | 'lg' | 'xl';

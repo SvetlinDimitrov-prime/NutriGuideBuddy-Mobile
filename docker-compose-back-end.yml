@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  nutriguide-backend:
+    image: svetlindimitrov606/nutriguidebuddy:latest
+    container_name: nutriguide-backend
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+
+      DB_HOST: mysql-db
+      DB_PORT: 3306
+      DB_NAME: reactiveDB
+      DB_USERNAME: root
+      DB_PASSWORD: 12345
+
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+
+      FOOD_DATA_API_KEY: 5802f857bd20231ff8950c034eedb7ee
+      FOOD_DATA_API_ID: 889214db
+
+      GOD_USER_EMAIL: god@example.com
+      GOD_USER_PASSWORD: 12345
+      MAIL_FROM: no-reply@nutriguidebuddy.local
+      MAIL_FROM_NAME: NutriGuideBuddy
+
+      CLIENT_WEB: http://localhost:8081
+    ports:
+      - '8080:8080'
+    networks:
+      - backend
+
+  mysql-db:
+    image: mysql:8.3.0
+    container_name: mysql-db
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+      MYSQL_DATABASE: reactiveDB
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h localhost -p$MYSQL_ROOT_PASSWORD || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    ports:
+      - '5678:80'
+    environment:
+      PMA_HOST: mysql-db
+      PMA_USER: root
+      PMA_PASSWORD: 12345
+    networks:
+      - backend
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

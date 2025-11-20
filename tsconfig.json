@@ -3,15 +3,12 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "types": [
-      "expo-router"
-    ],
+    "types": ["expo-router"],
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["src/*"],
+      "@assets/*": ["assets/*"]
     },
     "resolveJsonModule": true,
     "noEmit": true
@@ -24,7 +21,5 @@
     "global.d.ts",
     "nativewind-env.d.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

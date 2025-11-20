@@ -1,16 +1,27 @@
-// app/(auth)/login.tsx
-import React, { useMemo, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   View,
   useWindowDimensions,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Checkbox, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
-import { Link, router } from 'expo-router';
-import { s, vs, ms } from 'react-native-size-matters';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ms, s, vs } from 'react-native-size-matters';
+import { z } from 'zod';
+
+import { useLogin } from '@/api/hooks/useAuth';
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email is required.').email('Please enter a valid email address.'),
+  password: z.string().min(4, 'Password must be at least 4 characters long.'),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const theme = useTheme();
@@ -19,22 +30,30 @@ export default function Login() {
 
   const containerStyle = useMemo(() => [{ maxWidth: isWide ? s(520) : s(480) }], [isWide]);
 
-  const [email, setEmail] = useState('');
-  const [pass, setPass] = useState('');
-  const [showPass, setShowPass] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
-  const emailError = !!email && !/^\S+@\S+\.\S+$/.test(email);
+  const loginMutation = useLogin();
 
-  const onLogin = async () => {
-    if (emailError || !email || !pass) return;
-    try {
-      setSubmitting(true);
-      router.replace('/home');
-    } finally {
-      setSubmitting(false);
-    }
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    mode: 'onChange',
+  });
+
+  const interactionDisabled = isSubmitting || loginMutation.isPending;
+  const disableButton = interactionDisabled || !isValid;
+
+  const onSubmit = (values: LoginForm) => {
+    if (interactionDisabled) return;
+    loginMutation.mutate({ email: values.email, password: values.password });
   };
 
   return (
@@ -43,11 +62,11 @@ export default function Login() {
       edges={['right', 'bottom', 'left']}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoider}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.center}>
-          {/* header (flat, centered) */}
+          {/* header */}
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.title} accessibilityRole="header">
               Welcome back
@@ -57,69 +76,108 @@ export default function Login() {
             </Text>
           </View>
 
-          {/* flat stack — no card */}
+          {/* form */}
           <View style={[styles.stack, containerStyle]}>
-            <TextInput
-              mode="outlined" // keep outlined, but no surrounding Card
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              left={<TextInput.Icon icon="email" />}
-              style={[styles.input, { backgroundColor: theme.colors.surface }]}
-              error={emailError}
-            />
-            {emailError && (
-              <HelperText type="error" visible style={styles.helper}>
-                Enter a valid email address
-              </HelperText>
-            )}
-
-            <TextInput
-              mode="outlined"
-              label="Password"
-              value={pass}
-              onChangeText={setPass}
-              secureTextEntry={!showPass}
-              left={<TextInput.Icon icon="lock" />}
-              right={
-                <TextInput.Icon
-                  icon={showPass ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPass((v) => !v)}
-                />
-              }
-              style={[styles.input, { backgroundColor: theme.colors.surface }]}
+            {/* EMAIL */}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <>
+                  <TextInput
+                    mode="outlined"
+                    label="Email"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    left={<TextInput.Icon icon="email" />}
+                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                    error={!!errors.email}
+                    editable={!interactionDisabled}
+                  />
+                  {!!errors.email && (
+                    <HelperText type="error" visible style={styles.helper}>
+                      {errors.email.message}
+                    </HelperText>
+                  )}
+                </>
+              )}
             />
 
-            <View style={styles.rowBetween}>
+            {/* PASSWORD */}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <>
+                  <TextInput
+                    mode="outlined"
+                    label="Password"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    secureTextEntry={!showPass}
+                    left={<TextInput.Icon icon="lock" />}
+                    right={
+                      <TextInput.Icon
+                        icon={showPass ? 'eye-off' : 'eye'}
+                        onPress={() => {
+                          if (!interactionDisabled) setShowPass((v) => !v);
+                        }}
+                      />
+                    }
+                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                    error={!!errors.password}
+                    editable={!interactionDisabled}
+                  />
+                  {!!errors.password && (
+                    <HelperText type="error" visible style={styles.helper}>
+                      {errors.password.message}
+                    </HelperText>
+                  )}
+                </>
+              )}
+            />
+
+            {/* remember only (forgot password removed) */}
+            <View style={styles.rowLeft}>
               <Checkbox.Item
                 status={remember ? 'checked' : 'unchecked'}
-                onPress={() => setRemember((v) => !v)}
+                onPress={() => {
+                  if (!interactionDisabled) setRemember((v) => !v);
+                }}
                 label="Remember me"
                 position="leading"
                 style={styles.checkboxItem}
+                disabled={interactionDisabled}
               />
-              <Link href="/forgot-password">
-                <Text style={[styles.link, { color: theme.colors.primary }]}>Forgot password?</Text>
-              </Link>
             </View>
 
+            {/* submit */}
             <Button
               mode="contained"
-              onPress={onLogin}
-              disabled={emailError || !email || !pass || submitting}
-              loading={submitting}
+              onPress={handleSubmit(onSubmit)}
+              disabled={disableButton}
+              loading={interactionDisabled}
               style={styles.button}
             >
               Log in
             </Button>
 
+            {/* create account */}
             <View style={styles.createWrap}>
               <Text style={styles.muted}>Don’t have an account? </Text>
-              <Link href="/register">
-                <Text style={[styles.link, { color: theme.colors.primary }]}>Create one</Text>
-              </Link>
+              {interactionDisabled ? (
+                <Text style={[styles.link, { color: theme.colors.onSurfaceDisabled }]}>
+                  Create one
+                </Text>
+              ) : (
+                <Link href="/(auth)/register">
+                  <Text style={[styles.link, { color: theme.colors.primary }]}>Create one</Text>
+                </Link>
+              )}
             </View>
           </View>
         </View>
@@ -133,6 +191,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: s(16),
     paddingVertical: vs(16),
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   center: {
     flex: 1,
@@ -148,36 +209,29 @@ const styles = StyleSheet.create({
     fontSize: ms(15, 0.2),
     textAlign: 'center',
   },
-
-  // flat stack container
   stack: {
     width: '100%',
     alignSelf: 'center',
     gap: s(10),
   },
-
   input: {
     fontSize: ms(16, 0.2),
   },
   helper: { marginTop: -vs(6) },
-
-  rowBetween: {
+  rowLeft: {
     marginTop: vs(2),
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   checkboxItem: { paddingLeft: 0 },
-
   button: { borderRadius: s(12), marginTop: vs(6) },
-
   createWrap: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: s(4),
     marginTop: vs(10),
   },
-
   muted: { opacity: 0.8 },
   link: { textDecorationLine: 'underline' },
 });

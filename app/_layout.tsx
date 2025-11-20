@@ -1,4 +1,6 @@
+import { createQueryClient } from '@/api/queryConfig';
 import { ThemeProvider } from '@/theme/ThemeProvider';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Asset } from 'expo-asset';
 import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
@@ -7,14 +9,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => createQueryClient());
+
   const [fontsLoaded] = useFonts({
-    Inter: require('../assets/fonts/InterVariable.ttf'),
-    PoppinsRegular: require('../assets/fonts/Poppins-Regular.ttf'),
-    PoppinsSemiBold: require('../assets/fonts/Poppins-SemiBold.ttf'),
+    Inter: require('@assets/fonts/InterVariable.ttf'),
+    PoppinsRegular: require('@assets/fonts/Poppins-Regular.ttf'),
+    PoppinsSemiBold: require('@assets/fonts/Poppins-SemiBold.ttf'),
   });
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
@@ -23,7 +28,7 @@ export default function RootLayout() {
     let mounted = true;
     (async () => {
       try {
-        await Asset.fromModule(require('../assets/images/logo.png')).downloadAsync();
+        await Asset.fromModule(require('@assets/images/logo.png')).downloadAsync();
       } catch {}
       if (mounted) setAssetsLoaded(true);
     })();
@@ -35,17 +40,24 @@ export default function RootLayout() {
   const ready = fontsLoaded && assetsLoaded;
 
   const onLayout = useCallback(async () => {
-    if (ready) await SplashScreen.hideAsync();
+    if (ready) {
+      await SplashScreen.hideAsync();
+    }
   }, [ready]);
 
-  if (!ready) return <View style={styles.flex} onLayout={onLayout} />;
+  if (!ready) {
+    return <View style={styles.flex} onLayout={onLayout} />;
+  }
 
   return (
     <GestureHandlerRootView style={styles.flex} onLayout={onLayout}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <Slot />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <Slot />
+            <Toast />
+          </ThemeProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

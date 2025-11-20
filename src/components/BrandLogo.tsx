@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native';
 import { s } from 'react-native-size-matters';
 
-const logo = require('@/assets/images/logo.png');
+const logo = require('@assets/images/logo.png');
 
 type Props = { size?: number; round?: number };
 

@@ -21,7 +21,12 @@
     "web": {
       "bundler": "metro"
     },
-    "plugins": ["expo-router"],
-    "assetBundlePatterns": ["**/*"]
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }

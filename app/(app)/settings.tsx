@@ -1,259 +1,335 @@
-import React, { useState } from 'react';
-import { Platform, StyleSheet, View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Divider, Icon, List, Surface, Text, useTheme } from 'react-native-paper';
+import { useLogout } from '@/api/hooks/useAuth';
+import { useCurrentUserWithDetails, useDeleteUser } from '@/api/hooks/useUsers';
+import ProfileDetailsSection from '@/components/settings/ProfileDetailsSection';
+import ProfileIdentitySection from '@/components/settings/ProfileIdentitySection';
+import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { s, vs, ms } from 'react-native-size-matters';
-import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
+import { Button, Dialog, Portal, Surface, Text, useTheme } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ms, s, vs } from 'react-native-size-matters';
 
-const LeftAppearance = (props: any) => <List.Icon {...props} icon="theme-light-dark" />;
-const LeftLanguage = (props: any) => <List.Icon {...props} icon="translate" />;
-const LeftBell = (props: any) => <List.Icon {...props} icon="bell" />;
-const LeftEmail = (props: any) => <List.Icon {...props} icon="email" />;
-const LeftShield = (props: any) => <List.Icon {...props} icon="shield-lock" />;
-const LeftFingerprint = (props: any) => <List.Icon {...props} icon="fingerprint" />;
-const LeftInfo = (props: any) => <List.Icon {...props} icon="information-outline" />;
-const LeftBook = (props: any) => <List.Icon {...props} icon="book-open-variant" />;
-
-const RightChevron = (_props: any) => <Icon source="chevron-right" size={24} />;
-
-type ToggleRowStyles = Pick<
-  ReturnType<typeof makeStyles>,
-  | 'toggleRow'
-  | 'toggleRowDense'
-  | 'toggleRowRegular'
-  | 'toggleContent'
-  | 'toggleTitle'
-  | 'toggleDesc'
->;
-
-import { Switch } from 'react-native-paper';
-
-function ToggleRow({
-  left,
-  title,
-  description,
-  value,
-  onChange,
-  dense = false,
-  styles,
-}: {
-  left: (props: any) => React.ReactNode;
-  title: string;
-  description?: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-  dense?: boolean;
-  styles: ToggleRowStyles;
-}) {
-  return (
-    <View>
-      <View style={[styles.toggleRow, dense ? styles.toggleRowDense : styles.toggleRowRegular]}>
-        {left({})}
-        <View style={styles.toggleContent}>
-          <Text style={styles.toggleTitle}>{title}</Text>
-          {!!description && <Text style={styles.toggleDesc}>{description}</Text>}
-        </View>
-        <Switch value={value} onValueChange={onChange} accessibilityLabel={title} />
-      </View>
-      <Divider />
-    </View>
-  );
-}
-
-/* -------------------------------- Screen -------------------------------- */
-
-export default function Settings() {
+export default function SettingsScreen() {
   const theme = useTheme();
   const bp = useBreakpoints();
+  const insets = useSafeAreaInsets();
+
   const styles = useResponsiveStyles(theme, bp, makeStyles);
+  const twoCols = bp.isLG || bp.isXL;
 
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [emailUpdates, setEmailUpdates] = useState(false);
-  const [biometrics, setBiometrics] = useState(false);
+  const { data: userDetails, isLoading, isError, error } = useCurrentUserWithDetails();
 
-  const headlineVariant = useResponsiveValue({
-    base: 'headlineSmall',
-    lg: 'headlineMedium',
-    xl: 'headlineLarge',
-  }) as 'headlineSmall' | 'headlineMedium' | 'headlineLarge';
+  const deleteUserMutation = useDeleteUser();
+  const logoutMutation = useLogout();
+
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
+
+  // parent only blocks for account-wide actions
+  const globalBusy = useMemo(
+    () => deleteUserMutation.isPending || logoutMutation.isPending,
+    [deleteUserMutation.isPending, logoutMutation.isPending],
+  );
+
+  const confirmDelete = () => {
+    if (!userDetails || globalBusy) return;
+
+    deleteUserMutation.mutate(userDetails.id, {
+      onSuccess: () => {
+        setDeleteDialogVisible(false);
+        router.replace('/(auth)/login');
+      },
+    });
+  };
+
+  const confirmLogout = () => {
+    if (globalBusy) return;
+
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        setLogoutDialogVisible(false);
+        router.replace('/(auth)/login');
+      },
+    });
+  };
 
   return (
-    <SafeAreaView style={styles.page} edges={['right', 'bottom', 'left']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <Surface style={styles.header} mode="flat" elevation={0}>
-          <Text variant={headlineVariant} style={styles.title} accessibilityRole="header">
-            Settings
-          </Text>
-          <Text style={styles.subtitle}>Configure your experience</Text>
-        </Surface>
-
-        {/* Grid of sections */}
-        <View style={styles.grid}>
-          {/* General */}
-          <Surface style={styles.card} elevation={1}>
-            <Text style={styles.cardTitle} accessibilityRole="header">
-              General
+    <>
+      <Surface mode="flat" elevation={0} style={styles.page}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: styles.scrollContent.paddingBottom + insets.bottom },
+          ]}
+        >
+          {/* HEADER like the rest of the app */}
+          <View style={styles.header}>
+            <Text variant="headlineSmall" style={styles.title}>
+              Settings
             </Text>
-            <List.Section>
-              <List.Item
-                title="Appearance"
-                description="System / Light / Dark"
-                left={LeftAppearance}
-                right={RightChevron}
-                onPress={() => {}}
-              />
-              <Divider />
-              <List.Item
-                title="Language"
-                description="English"
-                left={LeftLanguage}
-                right={RightChevron}
-                onPress={() => {}}
-              />
-            </List.Section>
-          </Surface>
+            <Text style={styles.subtitle}>Manage your profile and account.</Text>
+          </View>
 
-          {/* Notifications */}
-          <Surface style={styles.card} elevation={1}>
-            <Text style={styles.cardTitle} accessibilityRole="header">
-              Notifications
+          {isLoading && <Text style={styles.statusText}>Loading your account details…</Text>}
+
+          {isError && (
+            <Text style={styles.errorText}>
+              Couldn&apos;t load your details: {error?.message ?? 'Unknown error'}
             </Text>
-            <List.Section>
-              <ToggleRow
-                left={LeftBell}
-                title="Push notifications"
-                description={pushEnabled ? 'Enabled' : 'Disabled'}
-                value={pushEnabled}
-                onChange={setPushEnabled}
+          )}
+
+          {userDetails && (
+            <>
+              {/* IDENTITY SECTION (username + email) */}
+              <ProfileIdentitySection
                 styles={styles}
+                twoCols={twoCols}
+                globalBusy={globalBusy}
+                userId={userDetails.id}
+                username={userDetails.username}
+                email={userDetails.email}
               />
-              <ToggleRow
-                left={LeftEmail}
-                title="Email updates"
-                description={emailUpdates ? 'Enabled' : 'Disabled'}
-                value={emailUpdates}
-                onChange={setEmailUpdates}
+
+              {/* DETAILS SECTION (rest of fields) */}
+              <ProfileDetailsSection
                 styles={styles}
+                twoCols={twoCols}
+                globalBusy={globalBusy}
+                userDetails={userDetails}
               />
-            </List.Section>
-          </Surface>
 
-          {/* Privacy & Security */}
-          <Surface style={styles.card} elevation={1}>
-            <Text style={styles.cardTitle} accessibilityRole="header">
-              Privacy & Security
+              {/* ACCOUNT SECTION */}
+              <Surface style={styles.section} elevation={1}>
+                <Text style={styles.sectionTitle}>Account</Text>
+
+                <View style={styles.buttonColumn}>
+                  <Button
+                    mode="outlined"
+                    icon="logout"
+                    onPress={() => setLogoutDialogVisible(true)}
+                    disabled={globalBusy}
+                  >
+                    Log out
+                  </Button>
+
+                  <Button
+                    mode="contained-tonal"
+                    buttonColor={theme.colors.errorContainer}
+                    textColor={theme.colors.onErrorContainer}
+                    icon="trash-can-outline"
+                    onPress={() => setDeleteDialogVisible(true)}
+                    disabled={globalBusy}
+                    loading={deleteUserMutation.isPending}
+                  >
+                    Delete account
+                  </Button>
+                </View>
+
+                <Text style={styles.dangerNote}>
+                  Deleting your account is permanent and cannot be undone.
+                </Text>
+              </Surface>
+            </>
+          )}
+        </ScrollView>
+      </Surface>
+
+      {/* DIALOGS */}
+      <Portal>
+        {/* Logout confirm */}
+        <Dialog
+          visible={logoutDialogVisible}
+          onDismiss={() => (globalBusy ? null : setLogoutDialogVisible(false))}
+        >
+          <Dialog.Title>Log out</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to log out?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setLogoutDialogVisible(false)} disabled={globalBusy}>
+              Cancel
+            </Button>
+            <Button
+              onPress={confirmLogout}
+              disabled={globalBusy}
+              loading={logoutMutation.isPending}
+              textColor={theme.colors.primary}
+            >
+              Log out
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Delete account */}
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => (globalBusy ? null : setDeleteDialogVisible(false))}
+        >
+          <Dialog.Title>Delete account</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              Are you sure you want to permanently delete your account? This action cannot be
+              undone.
             </Text>
-            <List.Section>
-              <ToggleRow
-                left={LeftFingerprint}
-                title="Use biometrics"
-                description={biometrics ? 'Enabled' : 'Disabled'}
-                value={biometrics}
-                onChange={setBiometrics}
-                styles={styles}
-              />
-              <List.Item
-                title="Two-factor authentication"
-                description="Recommended"
-                left={LeftShield}
-                right={RightChevron}
-                onPress={() => {}}
-              />
-            </List.Section>
-          </Surface>
-
-          {/* About */}
-          <Surface style={styles.card} elevation={1}>
-            <Text style={styles.cardTitle} accessibilityRole="header">
-              About
-            </Text>
-            <List.Section>
-              <List.Item title="Version" description="1.0.0" left={LeftInfo} />
-              <Divider />
-              <List.Item
-                title="Licenses"
-                description="Third-party notices"
-                left={LeftBook}
-                right={RightChevron}
-                onPress={() => {}}
-              />
-            </List.Section>
-          </Surface>
-        </View>
-
-        {/* Footer actions */}
-        <Surface style={styles.footer} mode="flat" elevation={0}>
-          <Button
-            mode="outlined"
-            textColor={theme.colors.error}
-            icon="restore"
-            onPress={() => {}}
-            accessibilityLabel="Reset settings"
-          >
-            Reset settings
-          </Button>
-        </Surface>
-      </ScrollView>
-    </SafeAreaView>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteDialogVisible(false)} disabled={globalBusy}>
+              Cancel
+            </Button>
+            <Button
+              onPress={confirmDelete}
+              disabled={globalBusy}
+              loading={deleteUserMutation.isPending}
+              textColor={theme.colors.error}
+            >
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </>
   );
 }
 
-function makeStyles(theme: MD3Theme) {
-  const padX = s(16);
-  const padY = vs(16);
-  const gridGap = s(16);
+function makeStyles(
+  theme: MD3Theme,
+  bp: { isXL: boolean; isLG: boolean; isMD: boolean; isSM: boolean },
+) {
+  const padX = bp.isXL ? s(32) : bp.isLG ? s(28) : bp.isMD ? s(20) : s(16);
+  const scrollPadY = bp.isXL ? vs(28) : bp.isLG ? vs(24) : bp.isMD ? vs(20) : vs(16);
+  const sectionPadY = bp.isXL ? vs(18) : bp.isLG ? vs(16) : bp.isMD ? vs(14) : vs(12);
+  const maxWidth = bp.isXL ? s(1024) : bp.isLG ? s(864) : bp.isMD ? s(720) : '100%';
 
   return StyleSheet.create({
     page: { flex: 1, backgroundColor: theme.colors.background },
-    scroll: { paddingHorizontal: padX, paddingTop: padY, paddingBottom: padY },
 
-    header: {
+    scrollContent: {
       paddingHorizontal: padX,
-      paddingVertical: padY,
-      borderRadius: s(12),
-      backgroundColor: theme.colors.surface,
-      alignItems: 'center',
+      paddingTop: scrollPadY,
+      paddingBottom: scrollPadY,
+      alignItems: 'stretch',
     },
-    title: { textAlign: 'center' },
+
+    // header like other pages
+    header: {
+      alignItems: 'flex-start',
+      marginBottom: vs(8),
+      alignSelf: 'center',
+      width: '100%',
+      maxWidth,
+    },
+    title: {
+      textAlign: 'left',
+      marginTop: vs(2),
+    },
     subtitle: {
       marginTop: vs(4),
-      textAlign: 'center',
       color: theme.colors.onSurfaceVariant,
-      opacity: 0.9,
-      fontSize: ms(15, 0.2),
+      fontSize: ms(14, 0.2),
     },
 
-    grid: {
-      marginTop: vs(16),
-      flexDirection: 'column',
-      gap: gridGap,
+    statusText: {
+      marginTop: vs(12),
+      textAlign: 'center',
+      color: theme.colors.onSurfaceVariant,
     },
-    card: {
-      width: '100%',
+
+    section: {
+      marginTop: vs(10),
       backgroundColor: theme.colors.surface,
       borderRadius: s(12),
       paddingHorizontal: padX,
-      paddingVertical: padY,
+      paddingVertical: sectionPadY,
+      alignSelf: 'center',
+      width: '100%',
+      maxWidth,
     },
-    cardTitle: {
+
+    sectionTitle: {
       fontSize: ms(18, 0.2),
       fontWeight: Platform.OS === 'ios' ? '600' : '700',
       marginBottom: vs(8),
     },
 
-    footer: { marginTop: vs(24), alignItems: 'center' },
+    listSection: {
+      marginVertical: 0,
+      paddingVertical: 0,
+    },
 
-    toggleRow: { flexDirection: 'row', alignItems: 'center' },
-    toggleRowDense: { paddingVertical: vs(6) },
-    toggleRowRegular: { paddingVertical: vs(10) },
-    toggleContent: { flex: 1, marginLeft: s(8) },
-    toggleTitle: { fontSize: ms(16, 0.2) },
-    toggleDesc: {
-      fontSize: ms(13, 0.2),
+    listItemTight: {
+      paddingVertical: vs(2),
+    },
+
+    profileHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: vs(4),
+    },
+    editActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: s(6),
+    },
+
+    itemTitleText: {
+      fontSize: ms(15, 0.2),
+      fontWeight: Platform.OS === 'ios' ? '500' : '600',
+    },
+
+    inlineInput: {
+      paddingHorizontal: 0,
+      backgroundColor: 'transparent',
+    },
+
+    inlineError: {
+      marginLeft: s(56),
+      marginTop: -vs(4),
+      marginBottom: vs(4),
+      color: theme.colors.error,
+      fontSize: ms(12, 0.2),
+    },
+
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+    },
+    detailCol: {
+      flex: 1,
+    },
+
+    buttonColumn: {
+      marginTop: vs(4),
+      gap: vs(8),
+    },
+    dangerNote: {
+      marginTop: vs(8),
+      fontSize: ms(12, 0.2),
       color: theme.colors.onSurfaceVariant,
-      opacity: 0.9,
+    },
+
+    errorText: {
+      color: theme.colors.error,
+      marginTop: vs(8),
+      textAlign: 'center',
+    },
+
+    // chips styles used by details section
+    chipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: vs(4),
+    },
+    chipButton: {
+      marginRight: s(8),
+      marginBottom: vs(6),
+      borderRadius: s(999),
+    },
+    chipContent: {
+      paddingHorizontal: s(10),
     },
   });
 }

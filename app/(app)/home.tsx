@@ -1,14 +1,10 @@
+import { useCurrentUserWithDetails } from '@/api/hooks/useUsers';
+import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Button, Chip, Divider, List, Surface, Text, useTheme } from 'react-native-paper';
+import { Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ms, s, vs } from 'react-native-size-matters';
-import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
-
-/* ---------- stable render helpers (no inline components) ---------- */
-const LeftBell = (props: any) => <List.Icon {...props} icon="bell-outline" />;
-const LeftAccountEdit = (props: any) => <List.Icon {...props} icon="account-edit" />;
-const LeftCog = (props: any) => <List.Icon {...props} icon="cog-outline" />;
 
 export default function Home() {
   const theme = useTheme();
@@ -23,6 +19,8 @@ export default function Home() {
 
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
+  const { data: userDetails, isLoading, isError, error } = useCurrentUserWithDetails();
+
   return (
     <Surface mode="flat" elevation={0} style={styles.page}>
       <ScrollView
@@ -32,7 +30,6 @@ export default function Home() {
           { paddingBottom: styles.scrollContent.paddingBottom + insets.bottom },
         ]}
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text
             variant={headlineVariant}
@@ -42,76 +39,27 @@ export default function Home() {
           >
             Home
           </Text>
-          <Text style={styles.subtitle}>This is your main screen.</Text>
+          <Text style={styles.subtitle}>Debug view – current user JSON</Text>
         </View>
 
-        {/* Quick actions (compact Surface, no stretching) */}
+        {/* DEBUG: raw JSON from /user/me/with-details */}
         <Surface style={styles.section} elevation={1}>
-          <Text style={styles.sectionTitle}>Quick actions</Text>
-          <View style={styles.actionsRow}>
-            <Button mode="contained" icon="plus" onPress={() => {}}>
-              Add new
-            </Button>
-            <Button mode="outlined" icon="magnify" onPress={() => {}}>
-              Search
-            </Button>
-            <Button mode="outlined" icon="share-variant" onPress={() => {}}>
-              Share
-            </Button>
-          </View>
-        </Surface>
+          <Text style={styles.sectionTitle}>Your details (raw JSON)</Text>
 
-        {/* Grid (no flexGrow, so no huge empty space) */}
-        <View style={styles.grid}>
-          <Surface style={styles.card} elevation={1}>
-            <Text style={styles.sectionTitle}>Today</Text>
+          {isLoading && <Text>Loading your details…</Text>}
 
-            <View style={styles.filters}>
-              <Chip selected>All</Chip>
-              <Chip>Important</Chip>
-              <Chip>Done</Chip>
-            </View>
-
-            <List.Section>
-              <List.Item
-                title="Check notifications"
-                description="Review recent updates"
-                left={LeftBell}
-                onPress={() => {}}
-              />
-              <Divider />
-              <List.Item
-                title="Update profile"
-                description="Keep your info fresh"
-                left={LeftAccountEdit}
-                onPress={() => {}}
-              />
-              <Divider />
-              <List.Item
-                title="Review settings"
-                description="Privacy & preferences"
-                left={LeftCog}
-                onPress={() => {}}
-              />
-            </List.Section>
-          </Surface>
-
-          <Surface style={styles.card} elevation={1}>
-            <Text style={styles.sectionTitle}>Insights</Text>
-            <Text style={styles.insightText}>
-              You’re all set! Explore features, tweak preferences, or jump into your most common
-              actions.
+          {isError && (
+            <Text style={styles.errorText}>
+              Couldn&apos;t load your details: {error?.message ?? 'Unknown error'}
             </Text>
-            <View style={styles.inlineButtons}>
-              <Button mode="contained-tonal" icon="palette" onPress={() => {}}>
-                Theme
-              </Button>
-              <Button mode="contained-tonal" icon="translate" onPress={() => {}}>
-                Language
-              </Button>
-            </View>
-          </Surface>
-        </View>
+          )}
+
+          {userDetails && (
+            <Text selectable style={styles.jsonText}>
+              {JSON.stringify(userDetails, null, 2)}
+            </Text>
+          )}
+        </Surface>
       </ScrollView>
     </Surface>
   );
@@ -123,9 +71,6 @@ function makeStyles(
 ) {
   const padX = bp.isXL ? s(32) : bp.isLG ? s(28) : bp.isMD ? s(20) : s(16);
   const padY = bp.isXL ? vs(28) : bp.isLG ? vs(24) : bp.isMD ? vs(20) : vs(16);
-  const gridGap = bp.isXL ? s(24) : bp.isLG ? s(20) : s(16);
-  const twoCols = bp.isLG || bp.isXL;
-  const maxWidth = bp.isXL ? s(1024) : bp.isLG ? s(864) : bp.isMD ? s(720) : '100%';
 
   return StyleSheet.create({
     page: { flex: 1, backgroundColor: theme.colors.background },
@@ -154,54 +99,24 @@ function makeStyles(
       paddingVertical: padY,
       alignSelf: 'center',
       width: '100%',
-      maxWidth,
+      maxWidth: bp.isXL ? s(1024) : bp.isLG ? s(864) : bp.isMD ? s(720) : '100%',
     },
     sectionTitle: {
       fontSize: ms(18, 0.2),
       fontWeight: Platform.OS === 'ios' ? '600' : '700',
       marginBottom: vs(8),
     },
-    actionsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: s(10),
-      justifyContent: 'center',
+
+    jsonText: {
+      marginTop: vs(8),
+      fontFamily:
+        Platform.OS === 'ios' ? 'Menlo' : Platform.OS === 'android' ? 'monospace' : 'monospace',
+      fontSize: ms(12, 0.2),
+      color: theme.colors.onSurface,
+    },
+    errorText: {
+      color: theme.colors.error,
       marginTop: vs(4),
-    },
-
-    grid: {
-      marginTop: vs(16),
-      flexDirection: twoCols ? 'row' : 'column',
-      gap: gridGap,
-      alignSelf: 'center',
-      width: '100%',
-      maxWidth,
-    },
-    card: {
-      // IMPORTANT: no flexGrow → the card height fits content (no huge blank space)
-      flexBasis: twoCols ? '48%' : '100%',
-      backgroundColor: theme.colors.surface,
-      borderRadius: s(12),
-      paddingHorizontal: padX,
-      paddingVertical: padY,
-    },
-
-    filters: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: s(8),
-      marginBottom: vs(8),
-    },
-    insightText: {
-      color: theme.colors.onSurfaceVariant,
-      opacity: 0.95,
-      fontSize: ms(15, 0.2),
-      marginBottom: vs(10),
-    },
-    inlineButtons: {
-      flexDirection: 'row',
-      gap: s(10),
-      flexWrap: 'wrap',
     },
   });
 }
