@@ -25,6 +25,11 @@ const SettingsIcon = ({ color, size }: IconProps) => (
   <Ionicons name="settings-outline" color={color} size={clamp(size)} />
 );
 
+// ✅ NEW icon
+const StatisticsIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="stats-chart-outline" color={color} size={clamp(size)} />
+);
+
 export default function AppLayout() {
   const theme = useTheme();
   const bp = useBreakpoints();
@@ -93,6 +98,12 @@ export default function AppLayout() {
       }}
     >
       <Drawer.Screen name="home" options={{ title: 'Home', drawerIcon: HomeIcon }} />
+
+      <Drawer.Screen
+        name="statistics/index"
+        options={{ title: 'Statistics', drawerIcon: StatisticsIcon }}
+      />
+
       <Drawer.Screen name="settings" options={{ title: 'Settings', drawerIcon: SettingsIcon }} />
     </Drawer>
   );

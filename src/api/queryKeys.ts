@@ -1,6 +1,7 @@
 import type { UserFilter } from '@/api/types/user';
 import { MealFoodFilter } from './types/mealFoods';
 import { MealFilter } from './types/meals';
+import { FoodComponentRequest, TrackerRequest } from './types/tracker';
 
 export const authKeys = {
   root: () => ['auth'] as const,
@@ -35,5 +36,17 @@ export const mealFoodKeys = {
 
   byId(mealId: number, foodId: number) {
     return [...this.all, 'byId', mealId, foodId] as const;
+  },
+};
+
+export const trackerKeys = {
+  all: ['tracker'] as const,
+
+  byUser(userId: number, dto?: TrackerRequest) {
+    return [...this.all, 'byUser', userId, dto ?? {}] as const;
+  },
+
+  foodComponentRange(userId: number, req: FoodComponentRequest) {
+    return [...this.all, 'foodComponentRange', userId, req] as const;
   },
 };
