@@ -2,12 +2,13 @@ import { useLogout } from '@/api/hooks/useAuth';
 import { useCurrentUserWithDetails, useDeleteUser } from '@/api/hooks/useUsers';
 import ProfileDetailsSection from '@/components/settings/ProfileDetailsSection';
 import ProfileIdentitySection from '@/components/settings/ProfileIdentitySection';
+import AppModal from '@/components/AppModal';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Button, Dialog, Portal, Surface, Text, useTheme } from 'react-native-paper';
+import { Button, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ms, s, vs } from 'react-native-size-matters';
 
@@ -137,59 +138,37 @@ export default function SettingsScreen() {
         </ScrollView>
       </Surface>
 
-      {/* DIALOGS */}
-      <Portal>
-        {/* Logout confirm */}
-        <Dialog
-          visible={logoutDialogVisible}
-          onDismiss={() => (globalBusy ? null : setLogoutDialogVisible(false))}
-        >
-          <Dialog.Title>Log out</Dialog.Title>
-          <Dialog.Content>
-            <Text>Are you sure you want to log out?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setLogoutDialogVisible(false)} disabled={globalBusy}>
-              Cancel
-            </Button>
-            <Button
-              onPress={confirmLogout}
-              disabled={globalBusy}
-              loading={logoutMutation.isPending}
-              textColor={theme.colors.primary}
-            >
-              Log out
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+      {/* LOGOUT MODAL */}
+      <AppModal
+        visible={logoutDialogVisible}
+        onDismiss={() => (globalBusy ? null : setLogoutDialogVisible(false))}
+        title="Log out"
+        confirmLabel="Log out"
+        confirmLoading={logoutMutation.isPending}
+        confirmDisabled={globalBusy}
+        confirmTextColor={theme.colors.primary}
+        onConfirm={confirmLogout}
+        onCancel={() => setLogoutDialogVisible(false)}
+      >
+        <Text>Are you sure you want to log out?</Text>
+      </AppModal>
 
-        {/* Delete account */}
-        <Dialog
-          visible={deleteDialogVisible}
-          onDismiss={() => (globalBusy ? null : setDeleteDialogVisible(false))}
-        >
-          <Dialog.Title>Delete account</Dialog.Title>
-          <Dialog.Content>
-            <Text>
-              Are you sure you want to permanently delete your account? This action cannot be
-              undone.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDeleteDialogVisible(false)} disabled={globalBusy}>
-              Cancel
-            </Button>
-            <Button
-              onPress={confirmDelete}
-              disabled={globalBusy}
-              loading={deleteUserMutation.isPending}
-              textColor={theme.colors.error}
-            >
-              Delete
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      {/* DELETE ACCOUNT MODAL */}
+      <AppModal
+        visible={deleteDialogVisible}
+        onDismiss={() => (globalBusy ? null : setDeleteDialogVisible(false))}
+        title="Delete account"
+        confirmLabel="Delete"
+        confirmLoading={deleteUserMutation.isPending}
+        confirmDisabled={globalBusy}
+        confirmTextColor={theme.colors.error}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialogVisible(false)}
+      >
+        <Text>
+          Are you sure you want to permanently delete your account? This action cannot be undone.
+        </Text>
+      </AppModal>
     </>
   );
 }
@@ -317,7 +296,6 @@ function makeStyles(
       textAlign: 'center',
     },
 
-    // chips styles used by details section
     chipsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',

@@ -1,4 +1,6 @@
 import type { UserFilter } from '@/api/types/user';
+import { MealFoodFilter } from './types/mealFoods';
+import { MealFilter } from './types/meals';
 
 export const authKeys = {
   root: () => ['auth'] as const,
@@ -16,4 +18,22 @@ export const userKeys = {
 export const userDetailsKeys = {
   root: () => ['details'] as const,
   me: () => ['details', 'me'] as const,
+};
+
+export const mealKeys = {
+  all: ['meals'] as const,
+  list: (filter?: MealFilter) => ['meals', 'list', filter ?? {}] as const,
+  byId: (id: number) => ['meals', 'byId', id] as const,
+};
+
+export const mealFoodKeys = {
+  all: ['mealFoods'] as const,
+
+  list(mealId: number, filter?: MealFoodFilter) {
+    return [...this.all, 'list', mealId, filter ?? {}] as const;
+  },
+
+  byId(mealId: number, foodId: number) {
+    return [...this.all, 'byId', mealId, foodId] as const;
+  },
 };
