@@ -1,13 +1,13 @@
 import { useBreakpoints } from '@/theme/responsive';
-import { useMemo, useState, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Platform,
+  ScrollView,
   StyleSheet,
   View,
-  ScrollView,
+  type LayoutChangeEvent,
   type TextStyle,
   type ViewStyle,
-  type LayoutChangeEvent,
 } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { Surface, Text, useTheme } from 'react-native-paper';
@@ -223,15 +223,22 @@ export function CaloriesBarWithLegend({
 
       const contentWidth = n * bw + (n + 1) * gap;
 
+      // ✅ WEB-ONLY FIX:
+      // on web the Y axis eats into the drawable width, so subtract it.
+      // also subtract a small safety gutter to handle rounding / internal padding.
+      const availableWidth = isWeb ? Math.max(0, chartWidth - yAxisLabelWidth - s(12)) : chartWidth;
+
+      const needs = contentWidth > availableWidth;
+
       return {
         barWidth: bw,
         spacing: gap,
         initialSpacing: gap,
         endSpacing: gap,
-        chartCanvasWidth: contentWidth > chartWidth ? contentWidth : undefined,
-        needsOuterScroll: contentWidth > chartWidth,
+        chartCanvasWidth: needs ? contentWidth : undefined,
+        needsOuterScroll: needs,
       };
-    }, [chartWidth, items.length, bp.isSM, isWeb, phoneBarScale]);
+    }, [chartWidth, items.length, bp.isSM, isWeb, phoneBarScale, yAxisLabelWidth]);
 
   const safeHeaderLeft = truncateLabel(legendLeftLabel, headerMaxChars);
 

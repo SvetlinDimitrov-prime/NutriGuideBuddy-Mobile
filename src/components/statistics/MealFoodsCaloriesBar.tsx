@@ -1,17 +1,16 @@
 import type { MealConsumedView } from '@/api/types/tracker';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
-import { Button, Surface, Text, useTheme } from 'react-native-paper';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Surface, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
 import { CaloriesBarWithLegend } from '../CaloriesBarWithLegend';
+import ChipsPanel from '../ChipsPanel'; // ✅ reuse
 
 type Props = {
   meals: MealConsumedView[];
 };
 
 const clampNonNeg = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
-const truncateLabel = (label: string, max = 12) =>
-  label.length > max ? `${label.slice(0, max - 1)}…` : label;
 
 type SelectableMeal = {
   id: string;
@@ -22,13 +21,6 @@ type SelectableMeal = {
 
 type Styles = {
   wrap: ViewStyle;
-
-  selectorCard: ViewStyle;
-  selectorWrap: ViewStyle;
-  selectorChip: ViewStyle;
-  selectorLabel: TextStyle;
-  selectorLabelSelected: TextStyle;
-
   emptyCard: ViewStyle;
   emptyText: TextStyle;
 };
@@ -88,35 +80,20 @@ export function MealFoodsCaloriesBar({ meals }: Props) {
 
   return (
     <View style={styles.wrap}>
-      {/* ✅ Selector wrapped in the same kind of card as the chart */}
-      <Surface style={styles.selectorCard} elevation={0}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.selectorWrap}
-          style={{ width: '100%' }}
-        >
-          {selectableMeals.map((m) => {
-            const selected = m.id === selectedMealId;
-            return (
-              <Button
-                key={m.id}
-                mode={selected ? 'contained' : 'outlined'}
-                onPress={() => setSelectedMealId(m.id)}
-                style={styles.selectorChip}
-                labelStyle={[styles.selectorLabel, selected && styles.selectorLabelSelected]}
-                contentStyle={{
-                  paddingHorizontal: s(8),
-                  paddingVertical: vs(2),
-                }}
-                compact
-              >
-                {truncateLabel(m.name, 12)}
-              </Button>
-            );
-          })}
-        </ScrollView>
-      </Surface>
+      <ChipsPanel
+        rows={[
+          {
+            key: 'meals',
+            title: 'Meal',
+            items: selectableMeals,
+            selectedId: selectedMealId,
+            onSelect: (m) => setSelectedMealId(m.id),
+            getId: (m) => m.id,
+            getLabel: (m) => m.name,
+            maxLabelChars: 12,
+          },
+        ]}
+      />
 
       <CaloriesBarWithLegend
         entries={foodEntries}
@@ -134,37 +111,6 @@ function makeStyles(theme: any) {
     wrap: {
       width: '100%',
       gap: vs(8),
-    },
-
-    // ✅ matches CaloriesBarWithLegend card padding/radius
-    selectorCard: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: s(14),
-      paddingVertical: vs(6),
-      paddingHorizontal: s(14),
-      width: '100%',
-    },
-
-    // ✅ paddingHorizontal keeps chips aligned with legend text
-    selectorWrap: {
-      flexDirection: 'row',
-      gap: s(8),
-      paddingVertical: vs(2),
-      paddingRight: s(2),
-    },
-
-    selectorChip: {
-      borderRadius: s(999),
-    },
-
-    selectorLabel: {
-      fontSize: ms(11, 0.2),
-      fontWeight: '700',
-      color: theme.colors.onSurface,
-    },
-
-    selectorLabelSelected: {
-      color: theme.colors.onPrimary,
     },
 
     emptyCard: {

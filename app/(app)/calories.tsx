@@ -1,7 +1,7 @@
 import { useTracker } from '@/api/hooks/useTracker';
 import { useCurrentUser } from '@/api/hooks/useUsers';
 import DateHeader from '@/components/DateHeader';
-import { DailyCaloriesSummary } from '@/components/statistics/DailyCaloriesSummary';
+import IntakeMeter from '@/components/IntakeMeter'; // ✅ new component
 import { MealFoodsCaloriesBar } from '@/components/statistics/MealFoodsCaloriesBar';
 import { MealsCaloriesBar } from '@/components/statistics/MealsCaloriesBar';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
@@ -17,6 +17,7 @@ import {
 import { Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { s, vs } from 'react-native-size-matters';
+import type { FoodComponentIntakeView } from '@/api/types/tracker'; // ✅ for adapter
 
 function formatYMD(d: Date) {
   const yyyy = d.getFullYear();
@@ -34,11 +35,8 @@ export default function CaloriesScreen() {
   const { data: me, isLoading: meLoading, isError: meError, error: meErr } = useCurrentUser();
   const userId = me?.id ?? 0;
 
-  // ✅ DATE STATE (so DateHeader never receives undefined)
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const selectedYmd = useMemo(() => formatYMD(selectedDate), [selectedDate]);
-
-  // ✅ TrackerRequest uses "date"
   const trackerDto = useMemo(() => ({ date: selectedYmd }), [selectedYmd]);
 
   const {
@@ -52,6 +50,28 @@ export default function CaloriesScreen() {
   const calorieGoal = data?.calorieGoal ?? 0;
 
   const totalConsumed = useMemo(() => meals.reduce((acc, m) => acc + (m.amount ?? 0), 0), [meals]);
+
+  // ✅ Adapter for IntakeMeter (calories as a "component")
+  const caloriesComponent: FoodComponentIntakeView | null = useMemo(() => {
+    if (!data) return null;
+
+    return {
+      name: 'ENERGY', // FoodComponentLabel
+      group: 'OTHER', // FoodComponentGroup (not shown by IntakeMeter)
+      unit: 'KCAL', // Unit
+      recommended: calorieGoal > 0 ? calorieGoal : null,
+      maxRecommended: null,
+      consumed: [
+        {
+          mealId: 0,
+          mealName: 'Total',
+          foodId: 0,
+          foodName: 'Total',
+          amount: totalConsumed,
+        },
+      ],
+    };
+  }, [data, calorieGoal, totalConsumed]);
 
   const isLoading = meLoading || statsLoading;
   const isError = meError || statsError;
@@ -68,7 +88,6 @@ export default function CaloriesScreen() {
         nestedScrollEnabled
         showsVerticalScrollIndicator={Platform.OS !== 'web'}
       >
-        {/* ✅ Header aligned with cards on web, without shrinking charts */}
         <View style={styles.headerWrap}>
           <DateHeader date={selectedDate} onChange={setSelectedDate} />
         </View>
@@ -78,7 +97,7 @@ export default function CaloriesScreen() {
 
         {!!data && (
           <>
-            <DailyCaloriesSummary goal={calorieGoal} consumed={totalConsumed} />
+            {caloriesComponent && <IntakeMeter component={caloriesComponent} />}
             <MealsCaloriesBar meals={meals} />
             <MealFoodsCaloriesBar meals={meals} />
           </>
@@ -91,12 +110,10 @@ export default function CaloriesScreen() {
 function makeStyles(theme: any, bp: any) {
   const isWeb = Platform.OS === 'web';
 
-  // Keep charts full-bleed on web
   const padX = isWeb ? 0 : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
   const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
 
-  // Header should align with card padding on web
-  const headerPadX = bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
+  const headerPadX = isWeb ? s(12) : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
 
   type Styles = {
     page: ViewStyle;
@@ -121,16 +138,15 @@ function makeStyles(theme: any, bp: any) {
 
     scrollContent: {
       paddingTop: padY,
-      paddingHorizontal: padX, // 0 on web to allow full-width charts
+      paddingHorizontal: padX,
       gap: vs(16),
       width: '100%',
       alignItems: 'stretch',
     },
 
-    // ✅ only adds padding on web so DateHeader lines up with cards
     headerWrap: {
       width: '100%',
-      paddingHorizontal: isWeb ? headerPadX : 0,
+      paddingHorizontal: headerPadX,
     },
 
     statusText: {

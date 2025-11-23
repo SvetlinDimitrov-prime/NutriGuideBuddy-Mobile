@@ -17,8 +17,9 @@ const HeaderRight = () => <ThemeSwitcher />;
 type IconProps = { color: string; size: number; focused: boolean };
 const clamp = (val: number) => Math.min(s(val), 26);
 
+// ✅ updated home icon to outline style
 const HomeIcon = ({ color, size }: IconProps) => (
-  <Ionicons name="home" color={color} size={clamp(size)} />
+  <Ionicons name="home-outline" color={color} size={clamp(size)} />
 );
 
 const SettingsIcon = ({ color, size }: IconProps) => (
@@ -29,12 +30,15 @@ const CaloriesIcon = ({ color, size }: IconProps) => (
   <Ionicons name="flame-outline" color={color} size={clamp(size)} />
 );
 
+const NutrientsIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="nutrition-outline" color={color} size={clamp(size)} />
+);
+
 export default function AppLayout() {
   const theme = useTheme();
   const bp = useBreakpoints();
   const status = useAuthStatus();
 
-  // --- AUTH GUARD ---
   if (status === 'loading') {
     return (
       <View style={styles.loader}>
@@ -42,14 +46,8 @@ export default function AppLayout() {
       </View>
     );
   }
-
-  if (status === 'unauthenticated') {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (status === 'authenticated-partial') {
-    return <Redirect href="/(auth)/complete-profile" />;
-  }
+  if (status === 'unauthenticated') return <Redirect href="/(auth)/login" />;
+  if (status === 'authenticated-partial') return <Redirect href="/(auth)/complete-profile" />;
 
   const drawerWidth = bp.isXL ? 360 : bp.isLG ? 320 : bp.isMD ? 300 : undefined;
   const drawerType: 'permanent' | 'front' | 'slide' = bp.isXL
@@ -95,18 +93,13 @@ export default function AppLayout() {
       }}
     >
       <Drawer.Screen name="home" options={{ title: 'Home', drawerIcon: HomeIcon }} />
-
       <Drawer.Screen name="calories" options={{ title: 'Calories', drawerIcon: CaloriesIcon }} />
-
+      <Drawer.Screen name="nutrients" options={{ title: 'Nutrients', drawerIcon: NutrientsIcon }} />
       <Drawer.Screen name="settings" options={{ title: 'Settings', drawerIcon: SettingsIcon }} />
     </Drawer>
   );
 }
 
 const styles = StyleSheet.create({
-  loader: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
