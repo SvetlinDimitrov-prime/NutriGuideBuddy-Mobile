@@ -25,9 +25,9 @@ const SettingsIcon = ({ color, size }: IconProps) => (
   <Ionicons name="settings-outline" color={color} size={clamp(size)} />
 );
 
-// ✅ NEW icon
-const StatisticsIcon = ({ color, size }: IconProps) => (
-  <Ionicons name="stats-chart-outline" color={color} size={clamp(size)} />
+// ✅ Calories icon
+const CaloriesIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="flame-outline" color={color} size={clamp(size)} />
 );
 
 export default function AppLayout() {
@@ -97,14 +97,25 @@ export default function AppLayout() {
         drawerHideStatusBarOnOpen: !bp.isXL,
       }}
     >
+      {/* routes that exist */}
       <Drawer.Screen name="home" options={{ title: 'Home', drawerIcon: HomeIcon }} />
 
-      <Drawer.Screen
-        name="statistics/index"
-        options={{ title: 'Statistics', drawerIcon: StatisticsIcon }}
-      />
+      {/* ✅ NEW calories route (matches calories.tsx) */}
+      <Drawer.Screen name="calories" options={{ title: 'Calories', drawerIcon: CaloriesIcon }} />
 
       <Drawer.Screen name="settings" options={{ title: 'Settings', drawerIcon: SettingsIcon }} />
+
+      {/* If you still have a leftover statistics route in build cache,
+          keeping this hidden screen is safe. If the file truly no longer exists,
+          you can delete this block. */}
+      <Drawer.Screen
+        name="statistics/index"
+        options={{
+          title: undefined,
+          drawerLabel: () => null,
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
     </Drawer>
   );
 }

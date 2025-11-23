@@ -14,7 +14,7 @@ import type {
 } from '@/api/types/mealFoods';
 import { showError, showSuccess } from '@/lib/toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { mealFoodKeys, mealKeys } from '../queryKeys';
+import { mealFoodKeys, mealKeys, trackerKeys } from '../queryKeys';
 
 export function useMealFoods(mealId: number, filter?: MealFoodFilter) {
   return useQuery<MealFoodView[], Error>({
@@ -39,6 +39,10 @@ function invalidateMealLists(qc: ReturnType<typeof useQueryClient>) {
   });
 }
 
+function invalidateTrackerLists(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: trackerKeys.all });
+}
+
 export function useCreateMealFood(mealId: number) {
   const qc = useQueryClient();
 
@@ -48,6 +52,7 @@ export function useCreateMealFood(mealId: number) {
       qc.invalidateQueries({ queryKey: mealFoodKeys.list(mealId) });
       qc.invalidateQueries({ queryKey: mealKeys.byId(mealId) });
       invalidateMealLists(qc);
+      invalidateTrackerLists(qc);
 
       showSuccess('Food added');
     },
@@ -69,6 +74,7 @@ export function useUpdateMealFood(mealId: number) {
       qc.invalidateQueries({ queryKey: mealKeys.byId(mealId) });
 
       invalidateMealLists(qc);
+      invalidateTrackerLists(qc);
 
       showSuccess('Food updated');
     },
@@ -89,6 +95,7 @@ export function useDeleteMealFood(mealId: number) {
       qc.invalidateQueries({ queryKey: mealKeys.byId(mealId) });
 
       invalidateMealLists(qc);
+      invalidateTrackerLists(qc);
 
       showSuccess('Food deleted');
     },
