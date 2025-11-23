@@ -1,14 +1,29 @@
 import { useTracker } from '@/api/hooks/useTracker';
 import { useCurrentUser } from '@/api/hooks/useUsers';
+import DateHeader from '@/components/DateHeader';
 import { DailyCaloriesSummary } from '@/components/statistics/DailyCaloriesSummary';
 import { MealFoodsCaloriesBar } from '@/components/statistics/MealFoodsCaloriesBar';
 import { MealsCaloriesBar } from '@/components/statistics/MealsCaloriesBar';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
-import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  type TextStyle,
+  type ViewStyle,
+  View,
+} from 'react-native';
 import { Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { s, vs } from 'react-native-size-matters';
+
+function formatYMD(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 export default function CaloriesScreen() {
   const theme = useTheme();
@@ -17,14 +32,21 @@ export default function CaloriesScreen() {
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
   const { data: me, isLoading: meLoading, isError: meError, error: meErr } = useCurrentUser();
-  const userId = me?.id;
+  const userId = me?.id ?? 0;
+
+  // ✅ DATE STATE (so DateHeader never receives undefined)
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const selectedYmd = useMemo(() => formatYMD(selectedDate), [selectedDate]);
+
+  // ✅ TrackerRequest uses "date"
+  const trackerDto = useMemo(() => ({ date: selectedYmd }), [selectedYmd]);
 
   const {
     data,
     isLoading: statsLoading,
     isError: statsError,
     error: statsErr,
-  } = useTracker(userId ?? 0, undefined, !!userId);
+  } = useTracker(userId, trackerDto, !!userId);
 
   const meals = data?.consumed ?? [];
   const calorieGoal = data?.calorieGoal ?? 0;
@@ -35,7 +57,6 @@ export default function CaloriesScreen() {
   const isError = meError || statsError;
   const errorMessage = meErr?.message ?? statsErr?.message ?? 'Unknown error';
 
-  // ✅ fixed concrete bottom padding
   const bottomPad = vs(40) + insets.bottom;
 
   return (
@@ -47,6 +68,11 @@ export default function CaloriesScreen() {
         nestedScrollEnabled
         showsVerticalScrollIndicator={Platform.OS !== 'web'}
       >
+        {/* ✅ Header aligned with cards on web, without shrinking charts */}
+        <View style={styles.headerWrap}>
+          <DateHeader date={selectedDate} onChange={setSelectedDate} />
+        </View>
+
         {isLoading && <Text style={styles.statusText}>Loading stats…</Text>}
         {isError && <Text style={styles.errorText}>Couldn’t load stats: {errorMessage}</Text>}
 
@@ -65,14 +91,18 @@ export default function CaloriesScreen() {
 function makeStyles(theme: any, bp: any) {
   const isWeb = Platform.OS === 'web';
 
-  // ✅ full width on web, keep padding on mobile/tablet
+  // Keep charts full-bleed on web
   const padX = isWeb ? 0 : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
   const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
+
+  // Header should align with card padding on web
+  const headerPadX = bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
 
   type Styles = {
     page: ViewStyle;
     scroll: ViewStyle;
     scrollContent: ViewStyle;
+    headerWrap: ViewStyle;
     statusText: TextStyle;
     errorText: TextStyle;
   };
@@ -89,13 +119,18 @@ function makeStyles(theme: any, bp: any) {
       width: '100%',
     },
 
-    // ✅ removed paddingBottom from styles (we set it in component)
     scrollContent: {
       paddingTop: padY,
-      paddingHorizontal: padX,
+      paddingHorizontal: padX, // 0 on web to allow full-width charts
       gap: vs(16),
       width: '100%',
       alignItems: 'stretch',
+    },
+
+    // ✅ only adds padding on web so DateHeader lines up with cards
+    headerWrap: {
+      width: '100%',
+      paddingHorizontal: isWeb ? headerPadX : 0,
     },
 
     statusText: {

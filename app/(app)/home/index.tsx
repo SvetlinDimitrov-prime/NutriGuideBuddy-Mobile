@@ -1,10 +1,11 @@
-import { useMeals } from '@/api/hooks/useMeals'; // <-- wherever your hook lives
+import { useMeals } from '@/api/hooks/useMeals';
 import type { MealFilter } from '@/api/types/meals';
+import DateHeader from '@/components/DateHeader';
 import MealSection from '@/components/home/MealSection';
 import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { Button, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,26 +18,11 @@ function formatYMD(d: Date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function prettyDate(d: Date) {
-  return d.toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 export default function Home() {
   const theme = useTheme();
   const bp = useBreakpoints();
   const insets = useSafeAreaInsets();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
-
-  const handleAddMeal = () => {
-    router.push({
-      pathname: '/home/meal/new',
-      params: { createdAt: todayYmd },
-    });
-  };
 
   const headlineVariant = useResponsiveValue({
     base: 'headlineSmall',
@@ -46,12 +32,35 @@ export default function Home() {
 
   const twoCols = bp.isLG || bp.isXL;
 
-  const today = useMemo(() => new Date(), []);
-  const todayYmd = useMemo(() => formatYMD(today), [today]);
-  const todayPretty = useMemo(() => prettyDate(today), [today]);
+  // ---- DATE STATE (kept here) ----
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const selectedYmd = useMemo(() => formatYMD(selectedDate), [selectedDate]);
 
-  const filter = useMemo<MealFilter>(() => ({ createdAt: todayYmd }), [todayYmd]);
+  // today at day-granularity
+  const todayYmd = useMemo(() => formatYMD(new Date()), []);
+  const isFutureDate = selectedYmd > todayYmd; // YYYY-MM-DD is safe for lexicographic compare
+
+  const filter = useMemo<MealFilter>(() => ({ createdAt: selectedYmd }), [selectedYmd]);
   const { data: meals = [], isLoading: loadingMeals, error: mealsError } = useMeals(filter);
+
+  // limit rules
+  const mealsLimitReached = meals.length >= 10;
+  const canAddMeals = !isFutureDate && !mealsLimitReached;
+
+  const handleAddMeal = useCallback(() => {
+    if (!canAddMeals) return;
+    router.push({
+      pathname: '/home/meal/new',
+      params: { createdAt: selectedYmd },
+    });
+  }, [selectedYmd, canAddMeals]);
+
+  // TS-safe bottom padding
+  const baseBottomPad =
+    (styles.scrollContent as any)?.paddingBottom &&
+    typeof (styles.scrollContent as any).paddingBottom === 'number'
+      ? (styles.scrollContent as any).paddingBottom
+      : 0;
 
   return (
     <Surface mode="flat" elevation={0} style={styles.page}>
@@ -59,21 +68,15 @@ export default function Home() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: styles.scrollContent.paddingBottom + insets.bottom },
+          { paddingBottom: baseBottomPad + insets.bottom },
         ]}
       >
-        {/* DATE HEADER */}
-        <View style={styles.header}>
-          <Text
-            variant={headlineVariant}
-            style={styles.title}
-            accessibilityRole="header"
-            {...(Platform.OS === 'web' ? { accessibilityLevel: 1 as any } : {})}
-          >
-            {todayPretty}
-          </Text>
-          <Text style={styles.subtitle}>Your meals for today</Text>
-        </View>
+        {/* ✅ DATE HEADER COMPONENT */}
+        <DateHeader
+          date={selectedDate}
+          onChange={setSelectedDate}
+          headlineVariant={headlineVariant}
+        />
 
         {loadingMeals && <Text style={styles.statusText}>Loading meals…</Text>}
         {!!mealsError && (
@@ -82,25 +85,28 @@ export default function Home() {
 
         {!loadingMeals && !mealsError && meals.length === 0 && (
           <Surface style={styles.emptyCard} elevation={1}>
-            <Text style={styles.statusText}>No meals yet for today.</Text>
-            <Button
-              mode="contained"
-              icon="plus"
-              onPress={() => console.log('add meal')}
-              style={styles.addMealBtn}
-            >
-              Add your first meal
-            </Button>
+            <Text style={styles.statusText}>No meals yet for this day.</Text>
+
+            {/* ✅ Only show if allowed */}
+            {canAddMeals && (
+              <Button
+                mode="contained"
+                icon="plus"
+                onPress={handleAddMeal}
+                style={styles.addMealBtn}
+              >
+                Add your first meal
+              </Button>
+            )}
           </Surface>
         )}
 
-        {/* MEALS */}
         {meals.map((meal) => (
           <MealSection key={meal.id} meal={meal} twoCols={twoCols} loading={loadingMeals} />
         ))}
 
-        {/* ADD MEAL AT THE END */}
-        {meals.length > 0 && (
+        {/* ✅ Only show bottom Add button if allowed */}
+        {meals.length > 0 && canAddMeals && (
           <Button mode="outlined" icon="plus" onPress={handleAddMeal} style={styles.addMealBtn}>
             Add meal
           </Button>
@@ -130,27 +136,13 @@ function makeStyles(
       alignItems: 'stretch',
     },
 
-    header: {
-      alignItems: 'center',
-      alignSelf: 'center',
-      width: '100%',
-      maxWidth,
-      marginBottom: vs(8),
-    },
-    title: { textAlign: 'center', marginTop: vs(4) },
-    subtitle: {
-      marginTop: vs(6),
-      textAlign: 'center',
-      color: theme.colors.onSurfaceVariant,
-      opacity: 0.9,
-      fontSize: ms(15, 0.2),
-    },
-
     statusText: {
       marginTop: vs(8),
       textAlign: 'center',
       color: theme.colors.onSurfaceVariant,
+      fontSize: ms(14, 0.2),
     },
+
     errorText: {
       color: theme.colors.error,
       marginTop: vs(8),
