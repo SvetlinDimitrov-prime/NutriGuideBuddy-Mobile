@@ -41,10 +41,14 @@ const NutrientsIcon = ({ color, size }: IconProps) => (
 const TrendsIcon = ({ color, size }: IconProps) => (
   <Ionicons name="stats-chart-outline" color={color} size={clamp(size)} />
 );
+// ✅ new Progress icon
+const ProgressIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="trending-up-outline" color={color} size={clamp(size)} />
+);
 
 // --- route grouping ---
 const MAIN_ROUTES = ['home'] as const;
-const STATS_ROUTES = ['calories', 'nutrients', 'trends'] as const;
+const STATS_ROUTES = ['calories', 'nutrients', 'trends', 'progress'] as const;
 const OTHER_ROUTES = ['settings'] as const;
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
@@ -55,14 +59,12 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   const currentRouteName = state.routes[state.index]?.name;
 
   const renderItem = (routeName: string) => {
-    // ✅ find real route so we can use route.key for descriptors
     const route = state.routes.find((r) => r.name === routeName);
     if (!route) return null;
 
     const focused = currentRouteName === routeName;
     const descriptor = descriptors[route.key];
     const options = descriptor?.options ?? {};
-
     const label = options.title ?? routeName;
     const drawerIcon = options.drawerIcon as any;
 
@@ -84,7 +86,6 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   };
 
   return (
-    // ✅ protect TOP notch only; avoid bottom double-padding
     <SafeAreaView
       edges={['top', 'left', 'right']}
       style={[styles.safeArea, { backgroundColor: theme.colors.surface }]}
@@ -95,7 +96,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
           styles.drawerContent,
           {
             paddingTop: insets.top + vs(6),
-            paddingBottom: vs(10), // small controlled bottom padding
+            paddingBottom: vs(10),
           },
         ]}
       >
@@ -176,6 +177,7 @@ export default function AppLayout() {
       <Drawer.Screen name="calories" options={{ title: 'Calories', drawerIcon: CaloriesIcon }} />
       <Drawer.Screen name="nutrients" options={{ title: 'Nutrients', drawerIcon: NutrientsIcon }} />
       <Drawer.Screen name="trends" options={{ title: 'Trends', drawerIcon: TrendsIcon }} />
+      <Drawer.Screen name="progress" options={{ title: 'Progress', drawerIcon: ProgressIcon }} />
       <Drawer.Screen name="settings" options={{ title: 'Settings', drawerIcon: SettingsIcon }} />
     </Drawer>
   );

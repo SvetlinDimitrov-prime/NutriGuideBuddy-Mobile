@@ -1,6 +1,6 @@
 import { getMyUserDetails, updateMyUserDetails } from '@/api/endpoints/userDetails';
 import { parseApiError } from '@/api/errors';
-import { userDetailsKeys, userKeys } from '@/api/queryKeys';
+import { userDetailsKeys, userKeys, trackerKeys, userDetailsSnapshotKeys } from '@/api/queryKeys';
 import type { UserDetailsRequest, UserDetailsResponse } from '@/api/types/userDetails';
 import { showError, showSuccess } from '@/lib/toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,6 +21,10 @@ export function useUpdateUserDetails(onFieldErrors?: (errors: Record<string, str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userDetailsKeys.root() });
       queryClient.invalidateQueries({ queryKey: userKeys.me() });
+
+      queryClient.invalidateQueries({ queryKey: trackerKeys.all });
+      queryClient.invalidateQueries({ queryKey: userDetailsSnapshotKeys.all });
+
       showSuccess('Your details have been updated.');
     },
     onError(error) {
