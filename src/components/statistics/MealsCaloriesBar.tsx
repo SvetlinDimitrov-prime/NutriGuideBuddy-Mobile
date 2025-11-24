@@ -1,6 +1,6 @@
 import type { MealConsumedView } from '@/api/types/tracker';
 import { useMemo } from 'react';
-import { CaloriesBarWithLegend } from '../CaloriesBarWithLegend';
+import { BarWithLegend } from './BarWithLegend';
 
 type Props = {
   meals: MealConsumedView[];
@@ -18,7 +18,7 @@ export function MealsCaloriesBar({ meals }: Props) {
   );
 
   return (
-    <CaloriesBarWithLegend
+    <BarWithLegend
       entries={entries}
       legendLeftLabel="Meals"
       emptyText="No meals logged for this day."

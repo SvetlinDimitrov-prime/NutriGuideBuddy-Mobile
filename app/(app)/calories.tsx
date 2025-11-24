@@ -1,7 +1,7 @@
 import { useTracker } from '@/api/hooks/useTracker';
 import { useCurrentUser } from '@/api/hooks/useUsers';
-import DateHeader from '@/components/DateHeader';
-import IntakeMeter from '@/components/IntakeMeter'; // ✅ new component
+import DateHeader from '@/components/statistics/DateHeader';
+import IntakeMeter from '@/components/statistics/IntakeMeter'; // ✅ new component
 import { MealFoodsCaloriesBar } from '@/components/statistics/MealFoodsCaloriesBar';
 import { MealsCaloriesBar } from '@/components/statistics/MealsCaloriesBar';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';

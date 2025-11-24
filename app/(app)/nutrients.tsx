@@ -2,10 +2,10 @@ import { useTracker } from '@/api/hooks/useTracker';
 import { useCurrentUser } from '@/api/hooks/useUsers';
 import type { FoodComponentGroup, FoodComponentLabel } from '@/api/types/mealFoods';
 import { getComponentDisplay, getUnitSymbol } from '@/api/utils/foodEnums';
-import { CaloriesBarWithLegend } from '@/components/CaloriesBarWithLegend';
 import ChipsPanel from '@/components/ChipsPanel'; // ✅ new
-import DateHeader from '@/components/DateHeader';
-import IntakeMeter from '@/components/IntakeMeter';
+import { BarWithLegend } from '@/components/statistics/BarWithLegend';
+import DateHeader from '@/components/statistics/DateHeader';
+import IntakeMeter from '@/components/statistics/IntakeMeter';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -184,7 +184,7 @@ export default function NutrientsScreen() {
             {selectedComponent && (
               <>
                 <IntakeMeter component={selectedComponent} />
-                <CaloriesBarWithLegend
+                <BarWithLegend
                   key={`${selectedComponent.name}-${entries.length}`}
                   entries={entries}
                   legendLeftLabel={leftLabel}

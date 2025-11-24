@@ -1,6 +1,6 @@
 import { useMeals } from '@/api/hooks/useMeals';
 import type { MealFilter } from '@/api/types/meals';
-import DateHeader from '@/components/DateHeader';
+import DateHeader from '@/components/statistics/DateHeader';
 import MealSection from '@/components/home/MealSection';
 import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
 import { router } from 'expo-router';

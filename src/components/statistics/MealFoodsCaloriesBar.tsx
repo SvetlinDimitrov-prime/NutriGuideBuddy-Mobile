@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import { Surface, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
-import { CaloriesBarWithLegend } from '../CaloriesBarWithLegend';
 import ChipsPanel from '../ChipsPanel'; // ✅ reuse
+import { BarWithLegend } from './BarWithLegend';
 
 type Props = {
   meals: MealConsumedView[];
@@ -95,7 +95,7 @@ export function MealFoodsCaloriesBar({ meals }: Props) {
         ]}
       />
 
-      <CaloriesBarWithLegend
+      <BarWithLegend
         entries={foodEntries}
         legendLeftLabel={selectedMeal?.name ?? 'Meal'}
         emptyText="No foods logged in this meal."

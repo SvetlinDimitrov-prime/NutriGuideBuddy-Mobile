@@ -128,7 +128,7 @@ type Styles = {
   legendKcal: TextStyle;
 };
 
-export function CaloriesBarWithLegend({
+export function BarWithLegend({
   entries,
   legendLeftLabel = '',
   unitLabel = 'kcal',
