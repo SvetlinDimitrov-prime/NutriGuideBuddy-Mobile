@@ -1,4 +1,4 @@
-import type { FoodComponentGroup, MealFoodView } from '@/api/types/mealFoods';
+import type { FoodComponentGroup } from '@/api/types/mealFoods';
 import { FOOD_COMPONENT_LABEL_DISPLAY, UNIT_SYMBOL } from '@/api/utils/foodEnums';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { useMemo, useState } from 'react';
@@ -18,7 +18,6 @@ const GROUP_TITLES: Record<FoodComponentGroup, string> = {
   MINERALS: 'Minerals',
 };
 
-// ✅ stable, doesn’t re-create on each render
 const GROUPS: FoodComponentGroup[] = [
   'OTHER',
   'CARBS',
@@ -30,8 +29,16 @@ const GROUPS: FoodComponentGroup[] = [
   'MINERALS',
 ];
 
+// minimal shape we need from a nutrient entry
+type NutrientLike = {
+  id?: number | string;
+  name: string; // FoodComponentLabel in practice
+  unit: string;
+  amount?: number | null;
+};
+
 type Props = {
-  grouped: Partial<Record<FoodComponentGroup, MealFoodView['components']>>;
+  grouped: Partial<Record<FoodComponentGroup, NutrientLike[]>>;
 };
 
 const clampNonNeg = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
@@ -89,9 +96,14 @@ export function NutritionAccordions({ grouped }: Props) {
             ]}
           >
             {items.map((c, idx) => (
-              <View key={c.id} style={[styles.nutrientRow, idx === 0 && styles.nutrientRowFirst]}>
+              <View
+                key={String(c.id ?? `${c.name}-${idx}`)}
+                style={[styles.nutrientRow, idx === 0 && styles.nutrientRowFirst]}
+              >
                 <Text style={styles.nutrientName} numberOfLines={1} ellipsizeMode="tail">
-                  {FOOD_COMPONENT_LABEL_DISPLAY[c.name] ?? c.name}
+                  {FOOD_COMPONENT_LABEL_DISPLAY[
+                    c.name as keyof typeof FOOD_COMPONENT_LABEL_DISPLAY
+                  ] ?? c.name}
                 </Text>
                 <Text style={styles.nutrientVal} numberOfLines={1} ellipsizeMode="tail">
                   {formatAmount(c.amount ?? 0, c.unit)}

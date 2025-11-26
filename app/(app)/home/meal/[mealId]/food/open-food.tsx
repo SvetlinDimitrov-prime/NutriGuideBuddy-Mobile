@@ -1,7 +1,9 @@
-import { useDeleteMealFood, useMealFood, useUpdateMealFood } from '@/api/hooks/useMealFoods';
-import AppModal from '@/components/AppModal';
+import { getOpenFoodFactsFoodById } from '@/api/endpoints/openFoodFacts';
+import { parseApiError } from '@/api/errors';
+import { useCreateMealFood } from '@/api/hooks/useMealFoods';
+import type { MealFoodView } from '@/api/types/mealFoods';
 import { AboutSection } from '@/components/meal/food/AboutSection';
-import { FoodHeaderSection } from '@/components/meal/food/FoodHeaderSection';
+import { FoodHeaderOffSection } from '@/components/meal/food/FoodHeaderOffSection';
 import { NutritionAccordions } from '@/components/meal/food/NutritionAccordions';
 import { ServingEditorCard } from '@/components/meal/food/ServingEditorCard';
 import { ServingMacroCard } from '@/components/meal/food/ServingMacroCard';
@@ -9,26 +11,57 @@ import PageShell from '@/components/PageShell';
 import { useFoodServingState } from '@/hooks/useFoodServingState';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { Text, useTheme } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
 
-export default function FoodModal() {
+type OffFood = MealFoodView;
+
+export default function OpenFoodFactsFoodScreen() {
   const theme = useTheme();
   const bp = useBreakpoints();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
-  const { mealId, foodId } = useLocalSearchParams<{ mealId: string; foodId: string }>();
+  const { mealId, offId } = useLocalSearchParams<{ mealId: string; offId: string }>();
   const mId = Number(mealId);
-  const fId = Number(foodId);
+  const offCode = String(offId ?? '');
 
-  const { data: food, isLoading, isError, error } = useMealFood(mId, fId);
-  const updateMealFood = useUpdateMealFood(mId);
-  const deleteMealFoodMut = useDeleteMealFood(mId);
+  const createMealFood = useCreateMealFood(mId);
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [food, setFood] = useState<OffFood | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!offCode) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        const dto = await getOpenFoodFactsFoodById(offCode);
+        if (!cancelled) {
+          setFood(dto as OffFood);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const apiErr = parseApiError(err as Error);
+          setLoadError(apiErr?.message ?? 'Could not load food');
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [offCode]);
 
   const {
     editOpen,
@@ -36,8 +69,8 @@ export default function FoodModal() {
     selectedServing,
     qtyText,
     onQtyChangeSafe,
-    qtyNum,
     setSelectedServing,
+    qtyNum,
     computed,
     scaleRatio,
     scaledCalories,
@@ -45,54 +78,39 @@ export default function FoodModal() {
     macroPercents,
     grouped,
     cancelEdit,
-  } = useFoodServingState(food ?? null);
+  } = useFoodServingState(food);
 
-  const onSaveEdit = () => {
-    if (!food || !selectedServing || qtyNum <= 0) return;
+  const addBusy = createMealFood.isPending;
 
-    updateMealFood.mutate(
-      {
-        foodId: food.id,
-        dto: {
-          servingUnit: selectedServing.metric,
-          servingAmount: qtyNum,
-          servingTotalGrams: computed.grams,
-          components: (food.components ?? []).map((c) => ({
-            id: c.id,
-            amount: (c.amount ?? 0) * scaleRatio,
-          })),
-        },
-      },
-      { onSuccess: () => setEditOpen(false) },
-    );
-  };
+  const onAddFood = () => {
+    if (!food || !selectedServing || qtyNum <= 0 || !mId || addBusy) return;
 
-  const onDeleteFood = () => {
-    if (!food || deleteMealFoodMut.isPending) return;
-    setDeleteOpen(true);
-  };
+    const dto = {
+      ...food,
+      servingUnit: selectedServing.metric,
+      servingAmount: qtyNum,
+      servingTotalGrams: computed.grams,
+      calorieAmount: scaledCalories,
+      components: (food.components ?? []).map((c) => ({
+        ...c,
+        amount: (c.amount ?? 0) * scaleRatio,
+      })),
+    };
 
-  const confirmDeleteFood = () => {
-    if (!food || deleteMealFoodMut.isPending) return;
-    deleteMealFoodMut.mutate(food.id, {
-      onSuccess: () => {
-        setDeleteOpen(false);
-        router.back();
-      },
+    createMealFood.mutate(dto as any, {
+      onSuccess: () => router.replace('/(app)/home'),
     });
   };
-
-  const busyDelete = deleteMealFoodMut.isPending;
 
   return (
     <>
       <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
         <View style={styles.body}>
-          <FoodHeaderSection
+          <FoodHeaderOffSection
             name={food?.name}
-            disabled={!food || busyDelete}
+            disabled={!food || addBusy}
             onEditToggle={() => setEditOpen((v) => !v)}
-            onDelete={onDeleteFood}
+            onAdd={onAddFood}
           />
 
           <ServingEditorCard
@@ -106,20 +124,16 @@ export default function FoodModal() {
             kcalPreview={computed.kcal}
             kcalUnit={food?.calorieUnit ?? 'KCAL'}
             onCancel={cancelEdit}
-            onSave={onSaveEdit}
-            saving={updateMealFood.isPending}
+            onSave={onAddFood}
+            saving={addBusy}
             saveDisabled={!selectedServing || qtyNum <= 0}
           />
 
           {isLoading && <Text style={styles.statusText}>Loading food…</Text>}
 
-          {isError && (
-            <Text style={styles.errorText}>
-              Couldn’t load food: {error?.message ?? 'Unknown error'}
-            </Text>
-          )}
+          {loadError && !isLoading && <Text style={styles.errorText}>{loadError}</Text>}
 
-          {!!food && (
+          {!!food && !isLoading && !loadError && (
             <>
               <ServingMacroCard
                 servingText={
@@ -127,7 +141,7 @@ export default function FoodModal() {
                     ? ''
                     : `🍽️ ${food.servingAmount} ${food.servingUnit} • ${food.servingTotalGrams} g`
                 }
-                kcalText={editOpen ? '' : `🔥 ${scaledCalories.toFixed(0)} ${food.calorieUnit}`}
+                kcalText={editOpen ? '' : `🔥 ${scaledCalories.toFixed(0)} kcal`}
                 macros={macros}
                 macroPercents={macroPercents}
               />
@@ -138,23 +152,6 @@ export default function FoodModal() {
           )}
         </View>
       </PageShell>
-
-      <AppModal
-        visible={deleteOpen}
-        onDismiss={() => (busyDelete ? null : setDeleteOpen(false))}
-        title="Delete food?"
-        confirmLabel="Delete"
-        confirmTextColor={theme.colors.error}
-        onConfirm={confirmDeleteFood}
-        confirmLoading={busyDelete}
-        confirmDisabled={busyDelete}
-        onCancel={() => setDeleteOpen(false)}
-      >
-        <Text>
-          Are you sure you want to delete{' '}
-          <Text style={{ fontWeight: '700' }}>{food?.name || 'this food'}</Text>?
-        </Text>
-      </AppModal>
     </>
   );
 }

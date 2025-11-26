@@ -1,12 +1,8 @@
-import { getOpenFoodFactsFoodById } from '@/api/endpoints/openFoodFacts';
-import { parseApiError } from '@/api/errors';
 import { useOpenFoodFactsSearch } from '@/api/hooks/openFoodFacts';
-import { useCreateMealFood } from '@/api/hooks/useMealFoods';
 import type { OpenFoodFactsFoodShortView } from '@/api/types/openFoodFacts';
 import SearchHeader from '@/components/meal/food/search/SearchHeader';
 import SearchResultsList from '@/components/meal/food/search/SearchResultsList';
 import PageShell from '@/components/PageShell';
-import { showError } from '@/lib/toast';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -20,11 +16,7 @@ export default function OpenFoodFactsSearchScreen() {
 
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const createMealFoodMutation = useCreateMealFood(numericMealId);
-
-  // debounce search text
   useEffect(() => {
     const h = setTimeout(() => setDebouncedQuery(query), 400);
     return () => clearTimeout(h);
@@ -49,9 +41,8 @@ export default function OpenFoodFactsSearchScreen() {
   );
 
   const handleClose = useCallback(() => {
-    if (createMealFoodMutation.isPending) return;
     router.back();
-  }, [createMealFoodMutation.isPending]);
+  }, []);
 
   const handleEndReached = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -59,30 +50,18 @@ export default function OpenFoodFactsSearchScreen() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleSelect = useCallback(
-    async (offId: string) => {
-      if (!numericMealId || createMealFoodMutation.isPending) return;
+    (offId: string) => {
+      if (!numericMealId) return;
 
-      try {
-        setSelectedId(offId);
-
-        const dto = await getOpenFoodFactsFoodById(offId);
-
-        createMealFoodMutation.mutate(dto, {
-          onSuccess: () => {
-            setSelectedId(null);
-            router.back();
-          },
-          onError: () => {
-            setSelectedId(null);
-          },
-        });
-      } catch (err) {
-        setSelectedId(null);
-        const apiError = parseApiError(err as Error);
-        showError(apiError?.message ?? 'Could not add food');
-      }
+      router.push({
+        pathname: '/home/meal/[mealId]/food/open-food',
+        params: {
+          mealId: String(numericMealId),
+          offId,
+        },
+      });
     },
-    [numericMealId, createMealFoodMutation],
+    [numericMealId],
   );
 
   const showEmpty = hasSearch && !isLoading && !isFetching && !isError && items.length === 0;
@@ -93,7 +72,7 @@ export default function OpenFoodFactsSearchScreen() {
 
       <SearchResultsList
         items={items}
-        addingId={selectedId}
+        addingId={null}
         isInitialLoading={isLoading && !data}
         isError={isError}
         errorMessage={error?.message}

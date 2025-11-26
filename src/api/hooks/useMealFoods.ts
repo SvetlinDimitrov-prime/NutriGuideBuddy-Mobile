@@ -58,6 +58,12 @@ export function useCreateMealFood(mealId: number) {
     },
     onError(error) {
       const apiError = parseApiError(error);
+
+      if (apiError?.status === 409) {
+        showError('This food is already in this meal.');
+        return;
+      }
+
       showError(apiError?.message ?? 'Could not add food');
     },
   });
