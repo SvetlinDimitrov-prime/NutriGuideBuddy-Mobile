@@ -209,9 +209,8 @@ export default function TrendLineChart({
       };
     });
 
-    // ✅ legend skips EXACT zeros only
     const legend: LegendItem[] = safe
-      .filter((p) => p.value !== 0) // 0.0001 stays, 0 goes away
+      .filter((p) => p.value !== 0)
       .map((p, i) => {
         const pct = totalVal > 0 ? p.value / totalVal : 0;
         return {
@@ -348,7 +347,6 @@ export default function TrendLineChart({
             )}
           </View>
 
-          {/* header + total + avg */}
           <View style={styles.legendHeaderRow}>
             <Text style={styles.legendHeaderLeft} numberOfLines={1} ellipsizeMode="tail">
               {safeHeaderLeft}
@@ -364,7 +362,6 @@ export default function TrendLineChart({
             </View>
           </View>
 
-          {/* legend rows (no dots) */}
           <View style={styles.legendWrap}>
             {legendItems.map((li) => (
               <View key={li.id} style={styles.legendRow}>
@@ -392,7 +389,8 @@ function makeStyles(theme: any) {
     card: {
       backgroundColor: theme.colors.surface,
       borderRadius: s(14),
-      padding: s(14),
+      paddingTop: s(14),
+      paddingBottom: s(14),
       gap: vs(8),
       width: '100%',
     },

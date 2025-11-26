@@ -1,11 +1,12 @@
 import { useMeal, useUpdateMeal } from '@/api/hooks/useMeals';
 import AppModal from '@/components/AppModal';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Button, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
 
 export default function EditMealModal() {
@@ -53,45 +54,49 @@ export default function EditMealModal() {
   };
 
   return (
-    <Surface style={styles.page}>
-      <View style={styles.headerRow}>
-        <Text variant="headlineSmall">Edit meal</Text>
-        <Button onPress={onCloseRequest} disabled={busy}>
-          Close
-        </Button>
-      </View>
+    <>
+      <PageShell>
+        <View style={styles.body}>
+          <View style={styles.headerRow}>
+            <Text variant="headlineSmall">Edit meal</Text>
+            <Button onPress={onCloseRequest} disabled={busy}>
+              Close
+            </Button>
+          </View>
 
-      {isLoading && <Text style={styles.statusText}>Loading meal…</Text>}
+          {isLoading && <Text style={styles.statusText}>Loading meal…</Text>}
 
-      {isError && (
-        <Text style={styles.errorText}>
-          Couldn&apos;t load meal: {error?.message ?? 'Unknown error'}
-        </Text>
-      )}
+          {isError && (
+            <Text style={styles.errorText}>
+              Couldn&apos;t load meal: {error?.message ?? 'Unknown error'}
+            </Text>
+          )}
 
-      {!!meal && (
-        <View style={styles.form}>
-          <Text style={styles.label}>Meal name</Text>
-          <TextInput
-            mode="outlined"
-            placeholder="Meal name"
-            value={name}
-            onChangeText={setName}
-            autoFocus
-            editable={!busy}
-          />
+          {!!meal && (
+            <View style={styles.form}>
+              <Text style={styles.label}>Meal name</Text>
+              <TextInput
+                mode="outlined"
+                placeholder="Meal name"
+                value={name}
+                onChangeText={setName}
+                autoFocus
+                editable={!busy}
+              />
 
-          <Button
-            mode="contained"
-            onPress={onSave}
-            loading={busy}
-            disabled={busy || name.trim().length === 0}
-            style={styles.saveBtn}
-          >
-            Save
-          </Button>
+              <Button
+                mode="contained"
+                onPress={onSave}
+                loading={busy}
+                disabled={busy || name.trim().length === 0}
+                style={styles.saveBtn}
+              >
+                Save
+              </Button>
+            </View>
+          )}
         </View>
-      )}
+      </PageShell>
 
       <AppModal
         visible={showCloseConfirm}
@@ -104,31 +109,38 @@ export default function EditMealModal() {
       >
         <Text>You have unsaved changes. Are you sure you want to close?</Text>
       </AppModal>
-    </Surface>
+    </>
   );
 }
 
-function makeStyles(theme: MD3Theme, bp: any) {
-  const padX = bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-  const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
-  const maxWidth = bp.isXL ? s(720) : '100%';
+function makeStyles(theme: MD3Theme, _: any) {
+  type Styles = {
+    content: ViewStyle;
+    body: ViewStyle;
+    headerRow: ViewStyle;
+    statusText: TextStyle;
+    errorText: TextStyle;
+    form: ViewStyle;
+    label: TextStyle;
+    saveBtn: ViewStyle;
+  };
 
-  return StyleSheet.create({
-    page: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      paddingHorizontal: padX,
-      paddingTop: padY,
-      alignSelf: 'center',
+  return StyleSheet.create<Styles>({
+    content: {
       width: '100%',
-      maxWidth,
+      alignItems: 'stretch',
+    },
+    body: {
+      width: '100%',
+      alignSelf: 'center',
+      gap: vs(4),
     },
 
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: vs(12),
+      marginBottom: vs(8),
     },
 
     statusText: {

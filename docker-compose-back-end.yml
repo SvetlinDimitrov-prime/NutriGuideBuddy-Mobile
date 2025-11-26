@@ -21,9 +21,6 @@ services:
       MAIL_HOST: mailhog
       MAIL_PORT: 1025
 
-      FOOD_DATA_API_KEY: 5802f857bd20231ff8950c034eedb7ee
-      FOOD_DATA_API_ID: 889214db
-
       GOD_USER_EMAIL: god@example.com
       GOD_USER_PASSWORD: 12345
       MAIL_FROM: no-reply@nutriguidebuddy.local

@@ -1,15 +1,16 @@
+// src/app/home/index.tsx (or wherever this file lives)
 import { useMeals } from '@/api/hooks/useMeals';
 import type { MealFilter } from '@/api/types/meals';
 import DateHeader from '@/components/statistics/DateHeader';
 import MealSection from '@/components/home/MealSection';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Button, Surface, Text, useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 
 function formatYMD(d: Date) {
   const yyyy = d.getFullYear();
@@ -21,7 +22,6 @@ function formatYMD(d: Date) {
 export default function Home() {
   const theme = useTheme();
   const bp = useBreakpoints();
-  const insets = useSafeAreaInsets();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
   const headlineVariant = useResponsiveValue({
@@ -32,13 +32,13 @@ export default function Home() {
 
   const twoCols = bp.isLG || bp.isXL;
 
-  // ---- DATE STATE (kept here) ----
+  // ---- DATE STATE ----
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const selectedYmd = useMemo(() => formatYMD(selectedDate), [selectedDate]);
 
   // today at day-granularity
   const todayYmd = useMemo(() => formatYMD(new Date()), []);
-  const isFutureDate = selectedYmd > todayYmd; // YYYY-MM-DD is safe for lexicographic compare
+  const isFutureDate = selectedYmd > todayYmd; // YYYY-MM-DD safe for lexicographic compare
 
   const filter = useMemo<MealFilter>(() => ({ createdAt: selectedYmd }), [selectedYmd]);
   const { data: meals = [], isLoading: loadingMeals, error: mealsError } = useMeals(filter);
@@ -55,64 +55,44 @@ export default function Home() {
     });
   }, [selectedYmd, canAddMeals]);
 
-  // TS-safe bottom padding
-  const baseBottomPad =
-    (styles.scrollContent as any)?.paddingBottom &&
-    typeof (styles.scrollContent as any).paddingBottom === 'number'
-      ? (styles.scrollContent as any).paddingBottom
-      : 0;
-
   return (
-    <Surface mode="flat" elevation={0} style={styles.page}>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: baseBottomPad + insets.bottom },
-        ]}
-      >
-        {/* ✅ DATE HEADER COMPONENT */}
+    <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
+      <View style={styles.headerWrap}>
         <DateHeader
           date={selectedDate}
           onChange={setSelectedDate}
           headlineVariant={headlineVariant}
         />
+      </View>
 
-        {loadingMeals && <Text style={styles.statusText}>Loading meals…</Text>}
-        {!!mealsError && (
-          <Text style={styles.errorText}>{mealsError.message ?? 'Failed to load meals'}</Text>
-        )}
+      {loadingMeals && <Text style={styles.statusText}>Loading meals…</Text>}
 
-        {!loadingMeals && !mealsError && meals.length === 0 && (
-          <Surface style={styles.emptyCard} elevation={1}>
-            <Text style={styles.statusText}>No meals yet for this day.</Text>
+      {!!mealsError && (
+        <Text style={styles.errorText}>{mealsError.message ?? 'Failed to load meals'}</Text>
+      )}
 
-            {/* ✅ Only show if allowed */}
-            {canAddMeals && (
-              <Button
-                mode="contained"
-                icon="plus"
-                onPress={handleAddMeal}
-                style={styles.addMealBtn}
-              >
-                Add your first meal
-              </Button>
-            )}
-          </Surface>
-        )}
+      {!loadingMeals && !mealsError && meals.length === 0 && (
+        <View style={styles.emptyCard}>
+          <Text style={styles.statusText}>No meals yet for this day.</Text>
 
-        {meals.map((meal) => (
-          <MealSection key={meal.id} meal={meal} twoCols={twoCols} loading={loadingMeals} />
-        ))}
+          {canAddMeals && (
+            <Button mode="contained" icon="plus" onPress={handleAddMeal} style={styles.addMealBtn}>
+              Add your first meal
+            </Button>
+          )}
+        </View>
+      )}
 
-        {/* ✅ Only show bottom Add button if allowed */}
-        {meals.length > 0 && canAddMeals && (
-          <Button mode="outlined" icon="plus" onPress={handleAddMeal} style={styles.addMealBtn}>
-            Add meal
-          </Button>
-        )}
-      </ScrollView>
-    </Surface>
+      {meals.map((meal) => (
+        <MealSection key={meal.id} meal={meal} twoCols={twoCols} loading={loadingMeals} />
+      ))}
+
+      {meals.length > 0 && canAddMeals && (
+        <Button mode="outlined" icon="plus" onPress={handleAddMeal} style={styles.addMealBtn}>
+          Add meal
+        </Button>
+      )}
+    </PageShell>
   );
 }
 
@@ -126,14 +106,25 @@ function makeStyles(
 
   const maxWidth = bp.isXL ? s(1024) : bp.isLG ? s(864) : bp.isMD ? s(720) : '100%';
 
-  return StyleSheet.create({
-    page: { flex: 1, backgroundColor: theme.colors.background },
+  type Styles = {
+    content: ViewStyle;
+    headerWrap: ViewStyle;
+    statusText: TextStyle;
+    errorText: TextStyle;
+    emptyCard: ViewStyle;
+    addMealBtn: ViewStyle;
+  };
 
-    scrollContent: {
-      paddingHorizontal: padX,
-      paddingTop: padY,
-      paddingBottom: padY,
+  return StyleSheet.create<Styles>({
+    content: {
+      width: '100%',
       alignItems: 'stretch',
+      gap: vs(12),
+    },
+
+    headerWrap: {
+      width: '100%',
+      marginBottom: vs(4),
     },
 
     statusText: {

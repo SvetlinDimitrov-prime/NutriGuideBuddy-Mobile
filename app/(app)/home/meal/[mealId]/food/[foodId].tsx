@@ -2,17 +2,18 @@ import { useDeleteMealFood, useMealFood, useUpdateMealFood } from '@/api/hooks/u
 import type { FoodComponentGroup, MealFoodView, ServingView } from '@/api/types/mealFoods';
 import { FOOD_COMPONENT_LABEL_DISPLAY } from '@/api/utils/foodEnums';
 import AppModal from '@/components/AppModal';
-import { AboutSection } from '@/components/meal/foodModal/AboutSection';
-import { FoodHeaderSection } from '@/components/meal/foodModal/FoodHeaderSection';
-import { NutritionAccordions } from '@/components/meal/foodModal/NutritionAccordions';
-import { ServingEditorCard } from '@/components/meal/foodModal/ServingEditorCard';
-import { ServingMacroCard } from '@/components/meal/foodModal/ServingMacroCard';
+import { AboutSection } from '@/components/meal/food/AboutSection';
+import { FoodHeaderSection } from '@/components/meal/food/FoodHeaderSection';
+import { NutritionAccordions } from '@/components/meal/food/NutritionAccordions';
+import { ServingEditorCard } from '@/components/meal/food/ServingEditorCard';
+import { ServingMacroCard } from '@/components/meal/food/ServingMacroCard';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { StyleSheet, type TextStyle, type ViewStyle, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Surface, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
 
 export default function FoodModal() {
@@ -207,64 +208,62 @@ export default function FoodModal() {
     return map;
   }, [food, filteredComponents]);
 
-  const isWeb = Platform.OS === 'web';
   const busyDelete = deleteMealFoodMut.isPending;
 
   return (
-    <Surface style={styles.page}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={!isWeb}
-      >
-        <FoodHeaderSection
-          name={food?.name}
-          disabled={!food || busyDelete}
-          onEditToggle={() => setEditOpen((v) => !v)}
-          onDelete={onDeleteFood}
-        />
+    <>
+      <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
+        <View style={styles.body}>
+          <FoodHeaderSection
+            name={food?.name}
+            disabled={!food || busyDelete}
+            onEditToggle={() => setEditOpen((v) => !v)}
+            onDelete={onDeleteFood}
+          />
 
-        <ServingEditorCard
-          visible={!!food && editOpen}
-          servings={food?.servings ?? []}
-          selected={selectedServing}
-          qtyText={qtyText}
-          onQtyChange={onQtyChangeSafe}
-          onSelectServing={setSelectedServing}
-          gramsPreview={computed.grams}
-          kcalPreview={computed.kcal}
-          kcalUnit={food?.calorieUnit ?? 'KCAL'}
-          onCancel={onCancelEdit}
-          onSave={onSaveEdit}
-          saving={updateMealFood.isPending}
-          saveDisabled={!selectedServing || qtyNum <= 0}
-        />
+          <ServingEditorCard
+            visible={!!food && editOpen}
+            servings={food?.servings ?? []}
+            selected={selectedServing}
+            qtyText={qtyText}
+            onQtyChange={onQtyChangeSafe}
+            onSelectServing={setSelectedServing}
+            gramsPreview={computed.grams}
+            kcalPreview={computed.kcal}
+            kcalUnit={food?.calorieUnit ?? 'KCAL'}
+            onCancel={onCancelEdit}
+            onSave={onSaveEdit}
+            saving={updateMealFood.isPending}
+            saveDisabled={!selectedServing || qtyNum <= 0}
+          />
 
-        {isLoading && <Text style={styles.statusText}>Loading food…</Text>}
-        {isError && (
-          <Text style={styles.errorText}>
-            Couldn’t load food: {error?.message ?? 'Unknown error'}
-          </Text>
-        )}
+          {isLoading && <Text style={styles.statusText}>Loading food…</Text>}
 
-        {!!food && (
-          <>
-            <ServingMacroCard
-              servingText={
-                editOpen
-                  ? ''
-                  : `🍽️ ${food.servingAmount} ${food.servingUnit} • ${food.servingTotalGrams} g`
-              }
-              kcalText={editOpen ? '' : `🔥 ${scaledCalories.toFixed(0)} ${food.calorieUnit}`}
-              macros={macros}
-              macroPercents={macroPercents}
-            />
+          {isError && (
+            <Text style={styles.errorText}>
+              Couldn’t load food: {error?.message ?? 'Unknown error'}
+            </Text>
+          )}
 
-            <AboutSection info={food.info} largeInfo={food.largeInfo} />
-            <NutritionAccordions grouped={grouped} />
-          </>
-        )}
-      </ScrollView>
+          {!!food && (
+            <>
+              <ServingMacroCard
+                servingText={
+                  editOpen
+                    ? ''
+                    : `🍽️ ${food.servingAmount} ${food.servingUnit} • ${food.servingTotalGrams} g`
+                }
+                kcalText={editOpen ? '' : `🔥 ${scaledCalories.toFixed(0)} ${food.calorieUnit}`}
+                macros={macros}
+                macroPercents={macroPercents}
+              />
+
+              <AboutSection info={food.info} largeInfo={food.largeInfo} />
+              <NutritionAccordions grouped={grouped} />
+            </>
+          )}
+        </View>
+      </PageShell>
 
       <AppModal
         visible={deleteOpen}
@@ -282,49 +281,40 @@ export default function FoodModal() {
           <Text style={{ fontWeight: '700' }}>{food?.name || 'this food'}</Text>?
         </Text>
       </AppModal>
-    </Surface>
+    </>
   );
 }
 
 function makeStyles(theme: MD3Theme, bp: any) {
-  const isWeb = Platform.OS === 'web';
-
-  const padX = bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-  const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
-
-  const maxWidth = isWeb ? '100%' : bp.isXL ? s(760) : '100%';
+  const maxWidth = bp.isXL ? s(760) : '100%';
 
   type Styles = {
-    page: ViewStyle;
-    scroll: ViewStyle;
-    scrollContent: ViewStyle;
+    content: ViewStyle;
+    body: ViewStyle;
     statusText: TextStyle;
     errorText: TextStyle;
   };
 
   return StyleSheet.create<Styles>({
-    page: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      paddingTop: padY,
-      paddingHorizontal: padX,
+    content: {
       width: '100%',
-      alignSelf: isWeb ? 'stretch' : 'center',
+      alignItems: 'stretch',
+    },
+
+    // inner column with max width
+    body: {
+      width: '100%',
       maxWidth,
-    },
-    scroll: {
-      flex: 1,
-      width: '100%',
-    },
-    scrollContent: {
-      paddingBottom: vs(40),
+      alignSelf: 'center',
       gap: vs(12),
     },
+
     statusText: {
       marginTop: vs(8),
       textAlign: 'center',
       color: theme.colors.onSurfaceVariant,
     },
+
     errorText: {
       marginTop: vs(8),
       textAlign: 'center',

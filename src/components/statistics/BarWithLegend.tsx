@@ -141,7 +141,6 @@ export function BarWithLegend({
   const styles = makeStyles(theme);
   const isWeb = Platform.OS === 'web';
 
-  // measure available width
   const [chartWidth, setChartWidth] = useState(0);
   const onChartLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -187,7 +186,6 @@ export function BarWithLegend({
     return { items: bars, legendItems: legend, total: totalKcal, maxKcal: max };
   }, [entries, pickColor, maxLabelChars]);
 
-  // y-axis width so numbers never truncate
   const yAxisLabelWidth = useMemo(() => {
     const biggest = Math.ceil(maxKcal * 1.1);
     const sample = `${biggest}`;
@@ -196,14 +194,12 @@ export function BarWithLegend({
     return Math.max(s(30), Math.min(s(64), raw));
   }, [maxKcal]);
 
-  // ✅ CONSTANT bar sizing (no more shrinking)
   const phoneBarScale = !isWeb && bp.isSM ? 2 : 1;
 
   const { barWidth, spacing, initialSpacing, endSpacing, chartCanvasWidth, needsOuterScroll } =
     useMemo(() => {
       const n = items.length;
 
-      // base constant sizes
       const baseBW = isWeb ? (bp.isSM ? s(18) : s(24)) : bp.isSM ? s(22) : s(28);
       const baseGap = bp.isSM ? s(6) : s(8);
 
@@ -223,9 +219,6 @@ export function BarWithLegend({
 
       const contentWidth = n * bw + (n + 1) * gap;
 
-      // ✅ WEB-ONLY FIX:
-      // on web the Y axis eats into the drawable width, so subtract it.
-      // also subtract a small safety gutter to handle rounding / internal padding.
       const availableWidth = isWeb ? Math.max(0, chartWidth - yAxisLabelWidth - s(12)) : chartWidth;
 
       const needs = contentWidth > availableWidth;
@@ -264,7 +257,6 @@ export function BarWithLegend({
       isAnimated
       animationDuration={500}
       showValuesAsTopLabel={false}
-      // ✅ outer scroll is responsible now
       disableScroll
       showScrollIndicator={false}
       width={chartCanvasWidth}
@@ -278,7 +270,6 @@ export function BarWithLegend({
         <Text style={styles.empty}>{emptyText}</Text>
       ) : (
         <>
-          {/* chart container */}
           <View onLayout={onChartLayout} style={{ width: '100%', overflow: 'hidden' }}>
             {needsOuterScroll ? (
               <ScrollView
@@ -306,7 +297,6 @@ export function BarWithLegend({
             </Text>
           </View>
 
-          {/* Legend rows */}
           <View style={styles.legendWrap}>
             {legendItems.map((li) => (
               <View key={li.id} style={styles.legendRow}>
@@ -335,7 +325,8 @@ function makeStyles(theme: any) {
     card: {
       backgroundColor: theme.colors.surface,
       borderRadius: s(14),
-      padding: s(14),
+      paddingTop: s(14),
+      paddingBottom: s(14),
       gap: vs(8),
       width: '100%',
     },

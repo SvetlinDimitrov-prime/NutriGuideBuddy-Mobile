@@ -1,6 +1,7 @@
 import type { UserFilter } from '@/api/types/user';
 import { MealFoodFilter } from './types/mealFoods';
 import { MealFilter } from './types/meals';
+import { OpenFoodFactsSearchParams } from './types/openFoodFacts';
 import { FoodComponentRequest, TrackerRequest } from './types/tracker';
 import type { UserDetailsSnapshotFilter } from './types/userDetailsSnapshot';
 
@@ -62,4 +63,11 @@ export const userDetailsSnapshotKeys = {
   byId(snapshotId: number) {
     return [...this.all, 'byId', snapshotId] as const;
   },
+};
+
+export const openFoodFactsKeys = {
+  all: ['openFoodFacts'] as const,
+  search: (name: string, size: number = 20) =>
+    [...openFoodFactsKeys.all, 'search', name, size] as const,
+  byId: (id: string) => [...openFoodFactsKeys.all, 'byId', id] as const,
 };

@@ -1,11 +1,12 @@
 import { useCreateMeal } from '@/api/hooks/useMeals';
 import AppModal from '@/components/AppModal';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Button, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
 
 function formatYMD(d: Date) {
@@ -48,35 +49,39 @@ export default function NewMealModal() {
   };
 
   return (
-    <Surface style={styles.page}>
-      <View style={styles.headerRow}>
-        <Text variant="headlineSmall">New meal</Text>
-        <Button onPress={onCloseRequest} disabled={busy}>
-          Close
-        </Button>
-      </View>
+    <>
+      <PageShell bottomExtra={vs(24)} contentStyle={styles.content}>
+        <View style={styles.body}>
+          <View style={styles.headerRow}>
+            <Text variant="headlineSmall">New meal</Text>
+            <Button onPress={onCloseRequest} disabled={busy}>
+              Close
+            </Button>
+          </View>
 
-      <View style={styles.form}>
-        <Text style={styles.label}>Meal name</Text>
-        <TextInput
-          mode="outlined"
-          placeholder="e.g. Breakfast"
-          value={name}
-          onChangeText={setName}
-          autoFocus
-          editable={!busy}
-        />
+          <View style={styles.form}>
+            <Text style={styles.label}>Meal name</Text>
+            <TextInput
+              mode="outlined"
+              placeholder="e.g. Breakfast"
+              value={name}
+              onChangeText={setName}
+              autoFocus
+              editable={!busy}
+            />
 
-        <Button
-          mode="contained"
-          onPress={onSave}
-          loading={busy}
-          disabled={busy || name.trim().length === 0}
-          style={styles.saveBtn}
-        >
-          Create meal
-        </Button>
-      </View>
+            <Button
+              mode="contained"
+              onPress={onSave}
+              loading={busy}
+              disabled={busy || name.trim().length === 0}
+              style={styles.saveBtn}
+            >
+              Create meal
+            </Button>
+          </View>
+        </View>
+      </PageShell>
 
       <AppModal
         visible={showCloseConfirm}
@@ -89,36 +94,51 @@ export default function NewMealModal() {
       >
         <Text>You haven’t saved this meal yet. Discard and close?</Text>
       </AppModal>
-    </Surface>
+    </>
   );
 }
 
 function makeStyles(theme: MD3Theme, bp: any) {
-  const padX = bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-  const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
   const maxWidth = bp.isXL ? s(720) : '100%';
 
-  return StyleSheet.create({
-    page: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      paddingHorizontal: padX,
-      paddingTop: padY,
-      alignSelf: 'center',
+  type Styles = {
+    content: ViewStyle;
+    body: ViewStyle;
+    headerRow: ViewStyle;
+    form: ViewStyle;
+    label: TextStyle;
+    saveBtn: ViewStyle;
+  };
+
+  return StyleSheet.create<Styles>({
+    content: {
+      width: '100%',
+      alignItems: 'stretch',
+    },
+
+    body: {
       width: '100%',
       maxWidth,
+      alignSelf: 'center',
+      gap: vs(4),
     },
+
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: vs(12),
+      marginBottom: vs(8),
     },
-    form: { gap: vs(10) },
+
+    form: {
+      gap: vs(10),
+    },
+
     label: {
       fontSize: ms(14, 0.2),
       color: theme.colors.onSurfaceVariant,
     },
+
     saveBtn: {
       marginTop: vs(8),
       borderRadius: s(10),

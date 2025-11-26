@@ -72,7 +72,10 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
 
   const handleAddBySearch = () => {
     setAddOpen(false);
-    console.log('add food action', { mealId: meal.id, mode: 'search' });
+    router.push({
+      pathname: '/home/meal/[mealId]/food/search',
+      params: { mealId: String(meal.id) },
+    });
   };
 
   return (

@@ -2,23 +2,16 @@ import { useTracker } from '@/api/hooks/useTracker';
 import { useCurrentUser } from '@/api/hooks/useUsers';
 import type { FoodComponentGroup, FoodComponentLabel } from '@/api/types/mealFoods';
 import { getComponentDisplay, getUnitSymbol } from '@/api/utils/foodEnums';
-import ChipsPanel from '@/components/ChipsPanel'; // ✅ new
+import ChipsPanel from '@/components/ChipsPanel';
 import { BarWithLegend } from '@/components/statistics/BarWithLegend';
 import DateHeader from '@/components/statistics/DateHeader';
 import IntakeMeter from '@/components/statistics/IntakeMeter';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
-import { Surface, Text, useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { s, vs } from 'react-native-size-matters';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import { vs } from 'react-native-size-matters';
 
 function formatYMD(d: Date) {
   const yyyy = d.getFullYear();
@@ -50,7 +43,6 @@ const prettyGroup = (g: FoodComponentGroup) =>
 export default function NutrientsScreen() {
   const theme = useTheme();
   const bp = useBreakpoints();
-  const insets = useSafeAreaInsets();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
   const { data: me, isLoading: meLoading, isError: meError, error: meErr } = useCurrentUser();
@@ -136,107 +128,80 @@ export default function NutrientsScreen() {
   const isLoading = meLoading || statsLoading;
   const isError = meError || statsError;
   const errorMessage = meErr?.message ?? statsErr?.message ?? 'Unknown error';
-  const bottomPad = vs(40) + insets.bottom;
 
   return (
-    <Surface mode="flat" elevation={0} style={styles.page}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={Platform.OS !== 'web'}
-      >
-        <View style={styles.headerWrap}>
-          <DateHeader date={selectedDate} onChange={setSelectedDate} />
-        </View>
+    <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
+      <View style={styles.headerWrap}>
+        <DateHeader date={selectedDate} onChange={setSelectedDate} />
+      </View>
 
-        {isLoading && <Text style={styles.statusText}>Loading stats…</Text>}
-        {isError && <Text style={styles.errorText}>Couldn’t load stats: {errorMessage}</Text>}
+      {isLoading && <Text style={styles.statusText}>Loading stats…</Text>}
+      {isError && <Text style={styles.errorText}>Couldn’t load stats: {errorMessage}</Text>}
 
-        {!isLoading && !isError && (
-          <>
-            <ChipsPanel
-              rows={[
-                {
-                  key: 'groups',
-                  title: 'Group',
-                  items: groups,
-                  selectedId: selectedGroup ?? null,
-                  onSelect: (g) => setSelectedGroup(g),
-                  getId: (g) => g,
-                  getLabel: (g) => prettyGroup(g),
-                  maxLabelChars: 14,
-                },
-                {
-                  key: 'nutrients',
-                  title: 'Nutrient',
-                  items: nutrientsInGroup,
-                  selectedId: selectedNutrient ?? null,
-                  onSelect: (c) => setSelectedNutrient(c.name),
-                  getId: (c) => c.name,
-                  getLabel: (c) => getComponentDisplay(c.name),
-                  maxLabelChars: 18,
-                },
-              ]}
-            />
+      {!isLoading && !isError && (
+        <>
+          <ChipsPanel
+            rows={[
+              {
+                key: 'groups',
+                title: 'Group',
+                items: groups,
+                selectedId: selectedGroup ?? null,
+                onSelect: (g) => setSelectedGroup(g),
+                getId: (g) => g,
+                getLabel: (g) => prettyGroup(g),
+                maxLabelChars: 14,
+              },
+              {
+                key: 'nutrients',
+                title: 'Nutrient',
+                items: nutrientsInGroup,
+                selectedId: selectedNutrient ?? null,
+                onSelect: (c) => setSelectedNutrient(c.name),
+                getId: (c) => c.name,
+                getLabel: (c) => getComponentDisplay(c.name),
+                maxLabelChars: 18,
+              },
+            ]}
+          />
 
-            {selectedComponent && (
-              <>
-                <IntakeMeter component={selectedComponent} />
-                <BarWithLegend
-                  key={`${selectedComponent.name}-${entries.length}`}
-                  entries={entries}
-                  legendLeftLabel={leftLabel}
-                  unitLabel={unitLabel}
-                  emptyText="No foods logged for this nutrient."
-                  maxLabelChars={9}
-                />
-              </>
-            )}
-          </>
-        )}
-      </ScrollView>
-    </Surface>
+          {selectedComponent && (
+            <>
+              <IntakeMeter component={selectedComponent} />
+              <BarWithLegend
+                key={`${selectedComponent.name}-${entries.length}`}
+                entries={entries}
+                legendLeftLabel={leftLabel}
+                unitLabel={unitLabel}
+                emptyText="No foods logged for this nutrient."
+                maxLabelChars={9}
+              />
+            </>
+          )}
+        </>
+      )}
+    </PageShell>
   );
 }
 
-function makeStyles(theme: any, bp: any) {
-  const isWeb = Platform.OS === 'web';
-  const padX = isWeb ? 0 : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-  const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
-  const headerPadX = isWeb ? s(12) : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-
+function makeStyles(theme: any, _bp: any) {
   type Styles = {
-    page: ViewStyle;
-    scroll: ViewStyle;
-    scrollContent: ViewStyle;
+    content: ViewStyle;
     headerWrap: ViewStyle;
     statusText: TextStyle;
     errorText: TextStyle;
   };
 
   return StyleSheet.create<Styles>({
-    page: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      width: '100%',
-    },
-    scroll: {
-      flex: 1,
-      width: '100%',
-    },
-    scrollContent: {
-      paddingTop: padY,
-      paddingHorizontal: padX,
-      gap: vs(12),
+    content: {
       width: '100%',
       alignItems: 'stretch',
+      gap: vs(12),
     },
 
     headerWrap: {
       width: '100%',
-      paddingHorizontal: headerPadX,
+      marginBottom: vs(4),
     },
 
     statusText: {
@@ -244,6 +209,7 @@ function makeStyles(theme: any, bp: any) {
       textAlign: 'center',
       color: theme.colors.onSurfaceVariant,
     },
+
     errorText: {
       marginTop: vs(8),
       textAlign: 'center',

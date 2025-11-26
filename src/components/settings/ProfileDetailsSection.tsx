@@ -1,5 +1,13 @@
+import { useUpdateUserDetails } from '@/api/hooks/useUserDetails';
+import { useBreakpoints } from '@/theme/responsive';
 import { useEffect, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import {
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 import {
   Button,
   Divider,
@@ -8,9 +16,9 @@ import {
   Surface,
   Text,
   TextInput,
+  useTheme,
 } from 'react-native-paper';
-
-import { useUpdateUserDetails } from '@/api/hooks/useUserDetails';
+import { ms, s, vs } from 'react-native-size-matters';
 
 const WORKOUT_OPTIONS = [
   { value: 'SEDENTARY', label: 'Sedentary', icon: 'sofa-single' },
@@ -36,7 +44,6 @@ const GOAL_OPTIONS = [
 type Option = { value: string; label: string; icon: string };
 
 type Props = {
-  styles: any;
   twoCols: boolean;
   globalBusy: boolean;
   userDetails: {
@@ -54,7 +61,7 @@ function valueToLabel(value: string | null | undefined, options: readonly Option
   return options.find((o) => o.value === value)?.label ?? value ?? '—';
 }
 
-/** ✅ stable left-icon renderers */
+// stable left icons
 const CalendarLeft = (props: any) => <List.Icon {...props} icon="calendar" />;
 const WeightLeft = (props: any) => <List.Icon {...props} icon="scale-bathroom" />;
 const HeightLeft = (props: any) => <List.Icon {...props} icon="human-male-height" />;
@@ -63,43 +70,11 @@ const WorkoutLeft = (props: any) => <List.Icon {...props} icon="run-fast" />;
 const GoalLeft = (props: any) => <List.Icon {...props} icon="target" />;
 const DietLeft = (props: any) => <List.Icon {...props} icon="food-apple-outline" />;
 
-function ChoiceChips({
-  value,
-  onChange,
-  options,
-  disabled,
-  styles,
-}: {
-  value?: string | null;
-  onChange: (val: string) => void;
-  options: readonly Option[];
-  disabled?: boolean;
-  styles: any;
-}) {
-  return (
-    <View style={styles.chipsRow}>
-      {options.map((opt) => {
-        const selected = value === opt.value;
-        return (
-          <Button
-            key={opt.value}
-            mode={selected ? 'contained' : 'outlined'}
-            icon={opt.icon}
-            onPress={() => !disabled && onChange(opt.value)}
-            disabled={disabled}
-            compact
-            style={styles.chipButton}
-            contentStyle={styles.chipContent}
-          >
-            {opt.label}
-          </Button>
-        );
-      })}
-    </View>
-  );
-}
+export default function ProfileDetailsSection({ twoCols, globalBusy, userDetails }: Props) {
+  const theme = useTheme();
+  const bp = useBreakpoints();
+  const styles = makeStyles(theme, bp);
 
-export default function ProfileDetailsSection({ styles, twoCols, globalBusy, userDetails }: Props) {
   const { width } = useWindowDimensions();
   const isWide = width >= 720;
 
@@ -168,7 +143,7 @@ export default function ProfileDetailsSection({ styles, twoCols, globalBusy, use
   };
 
   return (
-    <Surface style={styles.section} elevation={1}>
+    <Surface style={styles.section} mode="flat" elevation={0}>
       <View style={styles.profileHeaderRow}>
         <Text style={styles.sectionTitle}>Health details</Text>
 
@@ -195,9 +170,7 @@ export default function ProfileDetailsSection({ styles, twoCols, globalBusy, use
       </View>
 
       <List.Section style={styles.listSection}>
-        {/* =========================
-            VIEW MODE (twoCols)
-            ========================= */}
+        {/* ---------- VIEW MODE (twoCols) ---------- */}
         {twoCols && !isEditing && (
           <>
             {/* Row 1: Age | Weight */}
@@ -302,11 +275,7 @@ export default function ProfileDetailsSection({ styles, twoCols, globalBusy, use
           </>
         )}
 
-        {/* =========================
-            EDIT MODE (twoCols)
-            numeric pairs stay 2 cols,
-            enums get full width
-            ========================= */}
+        {/* ---------- EDIT MODE (twoCols) ---------- */}
         {twoCols && isEditing && (
           <>
             {/* Row 1: Age | Weight */}
@@ -481,10 +450,7 @@ export default function ProfileDetailsSection({ styles, twoCols, globalBusy, use
           </>
         )}
 
-        {/* =========================
-            SMALL SCREENS (stacked)
-            keep your old behavior
-            ========================= */}
+        {/* ---------- SMALL SCREENS (stacked) ---------- */}
         {!twoCols && (
           <>
             <List.Item
@@ -682,4 +648,134 @@ export default function ProfileDetailsSection({ styles, twoCols, globalBusy, use
       </List.Section>
     </Surface>
   );
+}
+
+type DetailStyles = ReturnType<typeof makeStyles>;
+
+function ChoiceChips({
+  value,
+  onChange,
+  options,
+  disabled,
+  styles,
+}: {
+  value?: string | null;
+  onChange: (val: string) => void;
+  options: readonly Option[];
+  disabled?: boolean;
+  styles: DetailStyles;
+}) {
+  return (
+    <View style={styles.chipsRow}>
+      {options.map((opt) => {
+        const selected = value === opt.value;
+        return (
+          <Button
+            key={opt.value}
+            mode={selected ? 'contained' : 'outlined'}
+            icon={opt.icon}
+            onPress={() => !disabled && onChange(opt.value)}
+            disabled={disabled}
+            compact
+            style={styles.chipButton}
+            contentStyle={styles.chipContent}
+          >
+            {opt.label}
+          </Button>
+        );
+      })}
+    </View>
+  );
+}
+
+function makeStyles(theme: any, bp: any) {
+  const maxWidth = bp.isXL ? s(1024) : bp.isLG ? s(864) : bp.isMD ? s(720) : '100%';
+
+  type Styles = {
+    section: ViewStyle;
+    profileHeaderRow: ViewStyle;
+    sectionTitle: TextStyle;
+    editActionsRow: ViewStyle;
+    listSection: ViewStyle;
+    detailRow: ViewStyle;
+    detailCol: ViewStyle;
+    descriptionSpaced: TextStyle;
+    itemTitleText: TextStyle;
+    inlineInput: TextStyle;
+    chipsRow: ViewStyle;
+    chipButton: ViewStyle;
+    chipContent: ViewStyle;
+  };
+
+  return StyleSheet.create<Styles>({
+    section: {
+      marginTop: vs(10),
+      alignSelf: 'center',
+      width: '100%',
+      maxWidth,
+    },
+
+    profileHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: vs(4),
+    },
+
+    sectionTitle: {
+      fontSize: ms(18, 0.2),
+      fontWeight: '600',
+      marginBottom: vs(2),
+    },
+
+    editActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: s(6),
+    },
+
+    listSection: {
+      marginVertical: 0,
+      paddingVertical: 0,
+    },
+
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+    },
+
+    detailCol: {
+      flex: 1,
+    },
+
+    descriptionSpaced: {
+      marginTop: vs(2),
+    },
+
+    itemTitleText: {
+      fontSize: ms(15, 0.2),
+      fontWeight: '500',
+    },
+
+    inlineInput: {
+      paddingHorizontal: 0,
+      backgroundColor: 'transparent',
+    },
+
+    chipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: vs(4),
+    },
+
+    chipButton: {
+      marginRight: s(8),
+      marginBottom: vs(6),
+      borderRadius: s(999),
+    },
+
+    chipContent: {
+      paddingHorizontal: s(10),
+    },
+  });
 }

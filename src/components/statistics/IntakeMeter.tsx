@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import type { FoodComponentIntakeView } from '@/api/types/tracker';
+import { getUnitSymbol } from '@/api/utils/foodEnums';
+import { useMemo } from 'react';
 import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import { Surface, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
-import type { FoodComponentIntakeView } from '@/api/types/tracker';
-import { getUnitSymbol } from '@/api/utils/foodEnums';
 
 type Props = {
   component: FoodComponentIntakeView;
@@ -17,7 +17,6 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const formatAmount = (v: number) => {
   if (!Number.isFinite(v)) return '0';
   if (Math.abs(v) >= 10) return `${Math.round(v)}`;
-  // show 1 decimal only when useful
   const oneDec = Math.round(v * 10) / 10;
   return Number.isInteger(oneDec) ? `${oneDec}` : `${oneDec.toFixed(1)}`;
 };
@@ -35,18 +34,13 @@ export default function IntakeMeter({ component, style, dense }: Props) {
   const recommended = component.recommended ?? null;
   const maxRecommended = component.maxRecommended ?? null;
 
-  // ✅ Pick the displayed target smartly:
-  // If max exists, that’s the real ceiling -> show it on the right.
-  // Otherwise show recommended.
   const targetValue = maxRecommended ?? recommended ?? null;
   const targetLabel = maxRecommended != null ? 'Max' : 'Recommended';
 
-  // Scale for bar length
   const base = targetValue ?? (consumed > 0 ? consumed : 1);
 
   const progress = clamp01(consumed / base);
 
-  // Status + delta
   const isOverMax = maxRecommended != null && consumed > maxRecommended;
   const isOnTarget = recommended != null && consumed >= recommended && !isOverMax;
 
@@ -63,9 +57,6 @@ export default function IntakeMeter({ component, style, dense }: Props) {
     return `Target reached`;
   }, [targetValue, isOverMax, maxRecommended, recommended, consumed, unit]);
 
-  // ✅ Percent display:
-  // If there's a recommended target but NO max, cap the visual % at 100.
-  // If max exists, show % of max (can exceed slightly, but keep sane).
   const rawPercent =
     maxRecommended != null
       ? (consumed / maxRecommended) * 100
@@ -82,7 +73,6 @@ export default function IntakeMeter({ component, style, dense }: Props) {
 
   return (
     <Surface style={[styles.card, style]} elevation={0}>
-      {/* TOP ROW */}
       <View style={styles.topRow}>
         <View style={styles.topBlock}>
           <Text style={styles.topLabel}>Consumed</Text>
@@ -101,7 +91,6 @@ export default function IntakeMeter({ component, style, dense }: Props) {
         )}
       </View>
 
-      {/* BAR */}
       <View style={styles.barWrap}>
         <View style={styles.barBase} />
         <View
@@ -115,7 +104,6 @@ export default function IntakeMeter({ component, style, dense }: Props) {
         />
       </View>
 
-      {/* BOTTOM ROW */}
       <View style={styles.bottomRow}>
         <Text
           style={[
@@ -166,7 +154,8 @@ function makeStyles(theme: any, dense?: boolean) {
     card: {
       backgroundColor: theme.colors.surface,
       borderRadius: s(14),
-      padding: pad,
+      paddingTop: pad,
+      paddingBottom: pad,
       width: '100%',
       gap: vs(10),
     },

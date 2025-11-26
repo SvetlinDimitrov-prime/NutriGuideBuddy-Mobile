@@ -10,21 +10,13 @@ import ChipsPanel from '@/components/ChipsPanel';
 import DateRangePickerCard, { type Granularity } from '@/components/statistics/DateRangePickerCard';
 import TextTrendCard from '@/components/statistics/TextTrendCard';
 import TrendLineChart from '@/components/statistics/TrendLineChart';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
-import { Surface, Text, useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { s, vs } from 'react-native-size-matters';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import { vs } from 'react-native-size-matters';
 
-// ----- date helpers -----
 function formatYMD(d: Date) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -38,13 +30,11 @@ function minusDays(d: Date, days: number) {
   return x;
 }
 
-// labels
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const labelDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 const labelMonth = (d: Date) => `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 const labelYear = (d: Date) => `${d.getFullYear()}`;
 
-// Monday-start week
 function startOfWeek(d: Date) {
   const x = new Date(d);
   const day = x.getDay();
@@ -54,7 +44,6 @@ function startOfWeek(d: Date) {
   return x;
 }
 
-// granularity labels
 const GRAN_LABEL: Record<Granularity, string> = {
   DAY: 'Per day',
   WEEK: 'Per week',
@@ -62,7 +51,6 @@ const GRAN_LABEL: Record<Granularity, string> = {
   YEAR: 'Per year',
 };
 
-// ----- enum prettifiers -----
 const prettyEnum = (v?: string | null) =>
   v
     ? v
@@ -76,7 +64,6 @@ const prettyWorkout = (w?: WorkoutState | null) => prettyEnum(w);
 const prettyGender = (g?: Gender | null) => prettyEnum(g);
 const prettyDiet = (d?: string | null) => (d && d.trim() ? d.trim() : '—');
 
-// ----- metric chips -----
 type MetricId = 'weight' | 'height' | 'goals' | 'workout' | 'diet' | 'gender';
 
 const METRICS: { id: MetricId; label: string; kind: 'number' | 'text' }[] = [
@@ -91,13 +78,11 @@ const METRICS: { id: MetricId; label: string; kind: 'number' | 'text' }[] = [
 export default function ProgressScreen() {
   const theme = useTheme();
   const bp = useBreakpoints();
-  const insets = useSafeAreaInsets();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
   const { data: me, isLoading: meLoading, isError: meError, error: meErr } = useCurrentUser();
   const userId = me?.id ?? 0;
 
-  // default: last 30 days
   const [endDate, setEndDate] = useState<Date>(() => new Date());
   const [startDate, setStartDate] = useState<Date>(() => minusDays(new Date(), 29));
   const startYmd = useMemo(() => formatYMD(startDate), [startDate]);
@@ -105,7 +90,6 @@ export default function ProgressScreen() {
 
   const [granularity, setGranularity] = useState<Granularity>('DAY');
 
-  // chip-selected metric
   const [selectedMetric, setSelectedMetric] = useState<MetricId>('weight');
 
   const snapshotFilter = useMemo(() => ({ from: startYmd, to: endYmd }), [startYmd, endYmd]);
@@ -117,11 +101,13 @@ export default function ProgressScreen() {
     error: snapErr,
   } = useUserDetailsSnapshots(snapshotFilter, !!userId);
 
-  const sortedSnaps = useMemo(() => {
-    return [...snapshots].sort(
-      (a, b) => new Date(a.snapshotAt).getTime() - new Date(b.snapshotAt).getTime(),
-    );
-  }, [snapshots]);
+  const sortedSnaps = useMemo(
+    () =>
+      [...snapshots].sort(
+        (a, b) => new Date(a.snapshotAt).getTime() - new Date(b.snapshotAt).getTime(),
+      ),
+    [snapshots],
+  );
 
   const buildNumericPoints = useCallback(
     (pick: (snap: UserDetailsSnapshotResponse) => number | null, unitLabel: string) => {
@@ -321,141 +307,116 @@ export default function ProgressScreen() {
   const isError = meError || snapError;
   const errorMessage = meErr?.message ?? snapErr?.message ?? 'Unknown error';
 
-  const bottomPad = vs(40) + insets.bottom;
   const selectedMetricMeta = METRICS.find((m) => m.id === selectedMetric)!;
 
   return (
-    <Surface mode="flat" elevation={0} style={styles.page}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={Platform.OS !== 'web'}
-      >
-        <View style={styles.headerWrap}>
-          <DateRangePickerCard
-            startDate={startDate}
-            endDate={endDate}
-            onChangeStart={setStartDate}
-            onChangeEnd={setEndDate}
-            granularity={granularity}
-            onChangeGranularity={setGranularity}
-            title="Compare dates"
+    <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
+      <View style={styles.headerWrap}>
+        <DateRangePickerCard
+          startDate={startDate}
+          endDate={endDate}
+          onChangeStart={setStartDate}
+          onChangeEnd={setEndDate}
+          granularity={granularity}
+          onChangeGranularity={setGranularity}
+          title="Compare dates"
+        />
+      </View>
+
+      {isLoading && <Text style={styles.statusText}>Loading progress…</Text>}
+      {isError && <Text style={styles.errorText}>Couldn’t load progress: {errorMessage}</Text>}
+
+      {!isLoading && !isError && (
+        <>
+          <ChipsPanel
+            rows={[
+              {
+                key: 'metrics',
+                title: 'Metric',
+                items: METRICS,
+                selectedId: selectedMetric,
+                onSelect: (m) => setSelectedMetric(m.id),
+                getId: (m) => m.id,
+                getLabel: (m) => m.label,
+                maxLabelChars: 12,
+              },
+            ]}
           />
-        </View>
 
-        {isLoading && <Text style={styles.statusText}>Loading progress…</Text>}
-        {isError && <Text style={styles.errorText}>Couldn’t load progress: {errorMessage}</Text>}
-
-        {!isLoading && !isError && (
-          <>
-            <ChipsPanel
-              rows={[
-                {
-                  key: 'metrics',
-                  title: 'Metric',
-                  items: METRICS,
-                  selectedId: selectedMetric,
-                  onSelect: (m) => setSelectedMetric(m.id),
-                  getId: (m) => m.id,
-                  getLabel: (m) => m.label,
-                  maxLabelChars: 12,
-                },
-              ]}
+          {selectedMetricMeta.kind === 'number' && selectedMetric === 'weight' && (
+            <TrendLineChart
+              points={weightSeries.points}
+              unitLabel={weightSeries.unitLabel}
+              headerLeftLabel={`Weight (${GRAN_LABEL[granularity]})`}
+              emptyText="No weight snapshots in this range."
+              maxLabelChars={granularity === 'DAY' ? 8 : 10}
             />
+          )}
 
-            {selectedMetricMeta.kind === 'number' && selectedMetric === 'weight' && (
-              <TrendLineChart
-                points={weightSeries.points}
-                unitLabel={weightSeries.unitLabel}
-                headerLeftLabel={`Weight (${GRAN_LABEL[granularity]})`}
-                emptyText="No weight snapshots in this range."
-                maxLabelChars={granularity === 'DAY' ? 8 : 10}
-              />
-            )}
+          {selectedMetricMeta.kind === 'number' && selectedMetric === 'height' && (
+            <TrendLineChart
+              points={heightSeries.points}
+              unitLabel={heightSeries.unitLabel}
+              headerLeftLabel={`Height (${GRAN_LABEL[granularity]})`}
+              emptyText="No height snapshots in this range."
+              maxLabelChars={granularity === 'DAY' ? 8 : 10}
+            />
+          )}
 
-            {selectedMetricMeta.kind === 'number' && selectedMetric === 'height' && (
-              <TrendLineChart
-                points={heightSeries.points}
-                unitLabel={heightSeries.unitLabel}
-                headerLeftLabel={`Height (${GRAN_LABEL[granularity]})`}
-                emptyText="No height snapshots in this range."
-                maxLabelChars={granularity === 'DAY' ? 8 : 10}
-              />
-            )}
+          {selectedMetricMeta.kind === 'text' && selectedMetric === 'goals' && (
+            <TextTrendCard
+              headerLeftLabel={goalsText.label}
+              rows={goalsText.rows}
+              emptyText="No goal changes in this range."
+            />
+          )}
 
-            {selectedMetricMeta.kind === 'text' && selectedMetric === 'goals' && (
-              <TextTrendCard
-                headerLeftLabel={goalsText.label}
-                rows={goalsText.rows}
-                emptyText="No goal changes in this range."
-              />
-            )}
+          {selectedMetricMeta.kind === 'text' && selectedMetric === 'workout' && (
+            <TextTrendCard
+              headerLeftLabel={workoutText.label}
+              rows={workoutText.rows}
+              emptyText="No workout state changes in this range."
+            />
+          )}
 
-            {selectedMetricMeta.kind === 'text' && selectedMetric === 'workout' && (
-              <TextTrendCard
-                headerLeftLabel={workoutText.label}
-                rows={workoutText.rows}
-                emptyText="No workout state changes in this range."
-              />
-            )}
+          {selectedMetricMeta.kind === 'text' && selectedMetric === 'diet' && (
+            <TextTrendCard
+              headerLeftLabel={dietText.label}
+              rows={dietText.rows}
+              emptyText="No diet changes in this range."
+            />
+          )}
 
-            {selectedMetricMeta.kind === 'text' && selectedMetric === 'diet' && (
-              <TextTrendCard
-                headerLeftLabel={dietText.label}
-                rows={dietText.rows}
-                emptyText="No diet changes in this range."
-              />
-            )}
-
-            {selectedMetricMeta.kind === 'text' && selectedMetric === 'gender' && (
-              <TextTrendCard
-                headerLeftLabel={genderText.label}
-                rows={genderText.rows}
-                emptyText="No gender changes in this range."
-              />
-            )}
-          </>
-        )}
-      </ScrollView>
-    </Surface>
+          {selectedMetricMeta.kind === 'text' && selectedMetric === 'gender' && (
+            <TextTrendCard
+              headerLeftLabel={genderText.label}
+              rows={genderText.rows}
+              emptyText="No gender changes in this range."
+            />
+          )}
+        </>
+      )}
+    </PageShell>
   );
 }
 
-function makeStyles(theme: any, bp: any) {
-  const isWeb = Platform.OS === 'web';
-  const padX = isWeb ? (bp.isXL ? s(24) : s(16)) : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-  const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
-
+function makeStyles(theme: any, _bp: any) {
   type Styles = {
-    page: ViewStyle;
-    scroll: ViewStyle;
-    scrollContent: ViewStyle;
+    content: ViewStyle;
     headerWrap: ViewStyle;
     statusText: TextStyle;
     errorText: TextStyle;
   };
 
   return StyleSheet.create<Styles>({
-    page: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      width: '100%',
-    },
-    scroll: {
-      flex: 1,
-      width: '100%',
-    },
-    scrollContent: {
-      paddingTop: padY,
-      paddingHorizontal: padX,
-      gap: vs(12),
+    content: {
       width: '100%',
       alignItems: 'stretch',
+      gap: vs(12),
     },
     headerWrap: {
       width: '100%',
+      marginBottom: vs(4),
     },
     statusText: {
       marginTop: vs(8),

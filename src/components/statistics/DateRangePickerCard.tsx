@@ -204,8 +204,6 @@ export default function DateRangePickerCard({
 
   return (
     <Surface style={[styles.card, style]} elevation={0}>
-      {/* ✅ Web keeps original horizontal compact header.
-          ✅ Phone stacks title + full-width segments. */}
       <View style={[styles.topRow, isPhone && styles.topRowPhone]}>
         <Text
           style={[styles.title, isPhone && styles.titlePhone]}
@@ -247,7 +245,6 @@ export default function DateRangePickerCard({
         </View>
       </View>
 
-      {/* Preset pills */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -324,7 +321,7 @@ function makeStyles(theme: any) {
     card: {
       backgroundColor: theme.colors.surface,
       borderRadius: s(14),
-      padding: s(12),
+      paddingBottom: s(12),
       gap: vs(8),
       width: '100%',
     },
@@ -352,7 +349,6 @@ function makeStyles(theme: any) {
       fontSize: ms(13, 0.2),
     },
 
-    // ✅ BASE (web/tablet): exactly your original compact segmented control
     segmentWrap: {
       flexDirection: 'row',
       alignItems: 'center',

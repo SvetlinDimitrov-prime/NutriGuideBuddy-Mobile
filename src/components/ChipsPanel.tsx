@@ -13,7 +13,6 @@ import { ms, s, vs } from 'react-native-size-matters';
 const truncateLabel = (label: string, max = 14) =>
   label.length > max ? `${label.slice(0, max - 1)}…` : label;
 
-// ✅ each row has its own generic type
 export type ChipsPanelRow<T = any> = {
   key: string;
   title?: string;
@@ -35,7 +34,7 @@ export default function ChipsPanel({ rows, style }: Props) {
   const styles = makeStyles(theme);
 
   const isWeb = Platform.OS === 'web';
-  const useWrap = isWeb; // wrap on web, horizontal scroll on native
+  const useWrap = isWeb;
 
   return (
     <Surface style={[styles.card, style]} elevation={0}>
@@ -107,7 +106,6 @@ function makeStyles(theme: any) {
       backgroundColor: theme.colors.surface,
       borderRadius: s(14),
       paddingVertical: vs(8),
-      paddingHorizontal: s(12),
       width: '100%',
       gap: vs(6),
     },

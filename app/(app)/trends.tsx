@@ -6,19 +6,12 @@ import { getComponentDisplay, getUnitSymbol } from '@/api/utils/foodEnums';
 import ChipsPanel from '@/components/ChipsPanel';
 import DateRangePickerCard, { type Granularity } from '@/components/statistics/DateRangePickerCard';
 import TrendLineChart from '@/components/statistics/TrendLineChart';
+import PageShell from '@/components/PageShell';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
-import { Surface, Text, useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { s, vs } from 'react-native-size-matters';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import { vs } from 'react-native-size-matters';
 
 function formatYMD(d: Date) {
   const yyyy = d.getFullYear();
@@ -37,23 +30,20 @@ function minusDays(d: Date, days: number) {
 }
 const clampNonNeg = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
 
-// ---------- label helpers ----------
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const labelDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}`; // "Nov 23"
-const labelMonth = (d: Date) => `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`; // "Nov 25"
+const labelDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+const labelMonth = (d: Date) => `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 const labelYear = (d: Date) => `${d.getFullYear()}`;
 
-// Monday-start week
 function startOfWeek(d: Date) {
   const x = new Date(d);
-  const day = x.getDay(); // 0 Sun .. 6 Sat
-  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   x.setDate(x.getDate() + diff);
   x.setHours(0, 0, 0, 0);
   return x;
 }
 
-// ---------- groups ----------
 const GROUP_DISPLAY: Partial<Record<FoodComponentGroup, string>> = {
   CARBS: 'Carbs',
   FATS: 'Fats',
@@ -72,7 +62,6 @@ const prettyGroup = (g: FoodComponentGroup) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-// ---------- granularity labels for header ----------
 const GRAN_LABEL: Record<Granularity, string> = {
   DAY: 'Per day',
   WEEK: 'Per week',
@@ -83,23 +72,19 @@ const GRAN_LABEL: Record<Granularity, string> = {
 export default function TrendsScreen() {
   const theme = useTheme();
   const bp = useBreakpoints();
-  const insets = useSafeAreaInsets();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
 
   const { data: me, isLoading: meLoading, isError: meError, error: meErr } = useCurrentUser();
   const userId = me?.id ?? 0;
 
-  // default to last 30 days → today
   const [endDate, setEndDate] = useState<Date>(() => new Date());
   const [startDate, setStartDate] = useState<Date>(() => minusDays(new Date(), 29));
 
   const startYmd = useMemo(() => formatYMD(startDate), [startDate]);
   const endYmd = useMemo(() => formatYMD(endDate), [endDate]);
 
-  // ✅ granularity controlled by DateRangePickerCard
   const [granularity, setGranularity] = useState<Granularity>('DAY');
 
-  // still need components list for chips; anchor to endDate
   const trackerDto = useMemo(() => ({ date: endYmd }), [endYmd]);
   const {
     data: tracker,
@@ -110,7 +95,6 @@ export default function TrendsScreen() {
 
   const components = tracker?.components ?? [];
 
-  // groups
   const groups = useMemo<FoodComponentGroup[]>(() => {
     const set = new Set<FoodComponentGroup>();
     components.forEach((c) => set.add(c.group));
@@ -161,7 +145,6 @@ export default function TrendsScreen() {
     error: rangeErr,
   } = useFoodComponentAmountInRange(userId, rangeReq as FoodComponentRequest, !!rangeReq);
 
-  // ✅ convert API shape -> filled daily totals (stable ordering)
   const dailyTotals = useMemo(() => {
     if (!rangeData) return [];
 
@@ -186,7 +169,7 @@ export default function TrendsScreen() {
     return filled;
   }, [rangeData, startYmd, endYmd]);
 
-  // ✅ aggregate dailyTotals -> chart points based on granularity
+  // aggregate dailyTotals -> chart points based on granularity
   const points = useMemo(() => {
     if (dailyTotals.length === 0) return [];
 
@@ -244,114 +227,85 @@ export default function TrendsScreen() {
   const errorMessage =
     meErr?.message ?? trackerErr?.message ?? rangeErr?.message ?? 'Unknown error';
 
-  const bottomPad = vs(40) + insets.bottom;
-
   return (
-    <Surface mode="flat" elevation={0} style={styles.page}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={Platform.OS !== 'web'}
-      >
-        {/* ✅ NO extra horizontal padding here — scrollContent already pads */}
-        <View style={styles.headerWrap}>
-          <DateRangePickerCard
-            startDate={startDate}
-            endDate={endDate}
-            onChangeStart={setStartDate}
-            onChangeEnd={setEndDate}
-            granularity={granularity}
-            onChangeGranularity={setGranularity}
-            title="Compare dates"
+    <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
+      <View style={styles.headerWrap}>
+        <DateRangePickerCard
+          startDate={startDate}
+          endDate={endDate}
+          onChangeStart={setStartDate}
+          onChangeEnd={setEndDate}
+          granularity={granularity}
+          onChangeGranularity={setGranularity}
+          title="Compare dates"
+        />
+      </View>
+
+      {isLoading && <Text style={styles.statusText}>Loading stats…</Text>}
+      {isError && <Text style={styles.errorText}>Couldn’t load stats: {errorMessage}</Text>}
+
+      {!isLoading && !isError && (
+        <>
+          <ChipsPanel
+            rows={[
+              {
+                key: 'groups',
+                title: 'Group',
+                items: groups,
+                selectedId: selectedGroup ?? null,
+                onSelect: (g) => setSelectedGroup(g),
+                getId: (g) => g,
+                getLabel: (g) => prettyGroup(g),
+                maxLabelChars: 14,
+              },
+              {
+                key: 'nutrients',
+                title: 'Nutrient',
+                items: nutrientsInGroup,
+                selectedId: selectedNutrient ?? null,
+                onSelect: (c) => setSelectedNutrient(c.name),
+                getId: (c) => c.name,
+                getLabel: (c) => getComponentDisplay(c.name),
+                maxLabelChars: 18,
+              },
+            ]}
           />
-        </View>
 
-        {isLoading && <Text style={styles.statusText}>Loading stats…</Text>}
-        {isError && <Text style={styles.errorText}>Couldn’t load stats: {errorMessage}</Text>}
-
-        {!isLoading && !isError && (
-          <>
-            <ChipsPanel
-              rows={[
-                {
-                  key: 'groups',
-                  title: 'Group',
-                  items: groups,
-                  selectedId: selectedGroup ?? null,
-                  onSelect: (g) => setSelectedGroup(g),
-                  getId: (g) => g,
-                  getLabel: (g) => prettyGroup(g),
-                  maxLabelChars: 14,
-                },
-                {
-                  key: 'nutrients',
-                  title: 'Nutrient',
-                  items: nutrientsInGroup,
-                  selectedId: selectedNutrient ?? null,
-                  onSelect: (c) => setSelectedNutrient(c.name),
-                  getId: (c) => c.name,
-                  getLabel: (c) => getComponentDisplay(c.name),
-                  maxLabelChars: 18,
-                },
-              ]}
+          {selectedComponent && (
+            <TrendLineChart
+              points={points}
+              unitLabel={unitLabel}
+              headerLeftLabel={`${getComponentDisplay(
+                selectedComponent.name,
+              )} (${GRAN_LABEL[granularity]})`}
+              emptyText="No data for this nutrient in the selected range."
+              maxLabelChars={granularity === 'DAY' ? 8 : 10}
             />
-
-            {selectedComponent && (
-              <TrendLineChart
-                points={points}
-                unitLabel={unitLabel}
-                headerLeftLabel={`${getComponentDisplay(
-                  selectedComponent.name,
-                )} (${GRAN_LABEL[granularity]})`}
-                emptyText="No data for this nutrient in the selected range."
-                maxLabelChars={granularity === 'DAY' ? 8 : 10}
-              />
-            )}
-          </>
-        )}
-      </ScrollView>
-    </Surface>
+          )}
+        </>
+      )}
+    </PageShell>
   );
 }
 
-function makeStyles(theme: any, bp: any) {
-  const isWeb = Platform.OS === 'web';
-
-  const padX = isWeb ? (bp.isXL ? s(24) : s(16)) : bp.isXL ? s(28) : bp.isLG ? s(24) : s(16);
-  const padY = bp.isXL ? vs(24) : bp.isLG ? vs(20) : vs(16);
-
+function makeStyles(theme: any, _bp: any) {
   type Styles = {
-    page: ViewStyle;
-    scroll: ViewStyle;
-    scrollContent: ViewStyle;
+    content: ViewStyle;
     headerWrap: ViewStyle;
     statusText: TextStyle;
     errorText: TextStyle;
   };
 
   return StyleSheet.create<Styles>({
-    page: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      width: '100%',
-    },
-    scroll: {
-      flex: 1,
-      width: '100%',
-    },
-    scrollContent: {
-      paddingTop: padY,
-      paddingHorizontal: padX,
-      gap: vs(12),
+    content: {
       width: '100%',
       alignItems: 'stretch',
+      gap: vs(12),
     },
 
-    // ✅ headerWrap no horizontal padding (prevents double-inset)
     headerWrap: {
       width: '100%',
+      marginBottom: vs(4),
     },
 
     statusText: {
@@ -359,6 +313,7 @@ function makeStyles(theme: any, bp: any) {
       textAlign: 'center',
       color: theme.colors.onSurfaceVariant,
     },
+
     errorText: {
       marginTop: vs(8),
       textAlign: 'center',

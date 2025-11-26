@@ -16,7 +16,6 @@ function prettyShort(d: Date) {
   return dayjs(d).format('ddd, MMM D');
 }
 
-// ✅ renamed internal keys to match behavior
 type SegmentKey = 'past' | 'today' | 'future';
 
 export default function DateHeader({ date, onChange, headlineVariant = 'headlineSmall' }: Props) {
@@ -28,7 +27,6 @@ export default function DateHeader({ date, onChange, headlineVariant = 'headline
 
   const selectedPretty = useMemo(() => prettyShort(date), [date]);
 
-  // keep original navigation (relative to selected date)
   const shiftDay = useCallback(
     (delta: number) => {
       const d = new Date(date);
@@ -44,7 +42,6 @@ export default function DateHeader({ date, onChange, headlineVariant = 'headline
     else shiftDay(1); // future
   };
 
-  // highlight rule: past / today / future (relative to real today)
   const activeSegment: SegmentKey = useMemo(() => {
     const today = dayjs();
 
@@ -55,7 +52,6 @@ export default function DateHeader({ date, onChange, headlineVariant = 'headline
 
   return (
     <View style={styles.header}>
-      {/* Top row: date + calendar */}
       <View style={styles.headerRow}>
         <Text variant={headlineVariant} style={styles.title}>
           {selectedPretty}
@@ -118,7 +114,6 @@ export default function DateHeader({ date, onChange, headlineVariant = 'headline
         </Pressable>
       </Surface>
 
-      {/* Picker modal */}
       <DatePickerModal
         locale="en"
         mode="single"
@@ -134,15 +129,10 @@ export default function DateHeader({ date, onChange, headlineVariant = 'headline
   );
 }
 
-function makeStyles(theme: any, bp: any) {
-  const maxWidth = bp.isXL ? s(1024) : bp.isLG ? s(864) : bp.isMD ? s(720) : '100%';
-
+function makeStyles(theme: any, _bp: any) {
   return StyleSheet.create({
     header: {
-      alignItems: 'center',
-      alignSelf: 'center',
       width: '100%',
-      maxWidth,
       marginBottom: vs(8),
       gap: vs(10),
     },
@@ -160,7 +150,8 @@ function makeStyles(theme: any, bp: any) {
     },
 
     calendarBtn: {
-      marginRight: -s(4),
+      // no negative margin, no weird offset
+      margin: 0,
       borderRadius: s(999),
       backgroundColor: theme.colors.surfaceVariant,
     },
@@ -172,9 +163,10 @@ function makeStyles(theme: any, bp: any) {
       borderRadius: s(999),
       backgroundColor: theme.colors.surfaceVariant,
       overflow: 'hidden',
+
+      // full-width, same padding as rest of content from PageShell
       width: '100%',
-      maxWidth: s(360),
-      alignSelf: 'center',
+      alignSelf: 'stretch',
     },
 
     segmentBtn: {
