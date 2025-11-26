@@ -20,7 +20,6 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
   const theme = useTheme();
   const bp = useBreakpoints();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
-
   const deleteMealMutation = useDeleteMeal();
 
   const isSmall = bp.isSM || bp.isMD;
@@ -66,8 +65,14 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
   };
 
   const handleAddByQr = () => {
+    if (busy || isWeb) return;
+
     setAddOpen(false);
-    console.log('add food action', { mealId: meal.id, mode: 'qr' });
+
+    router.push({
+      pathname: '/home/meal/[mealId]/food/scan',
+      params: { mealId: String(meal.id) },
+    });
   };
 
   const handleAddBySearch = () => {
@@ -137,18 +142,23 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
 
         {addOpen && (
           <View style={styles.quickActionsWrap}>
-            <Pressable
-              onPress={handleAddByQr}
-              style={({ pressed }) => [styles.quickActionBtn, pressed && styles.quickActionPressed]}
-            >
-              <IconButton
-                icon="qrcode-scan"
-                size={actionIconSize - s(2)}
-                iconColor={theme.colors.primary}
-                style={styles.quickActionIcon}
-              />
-              <Text style={styles.quickActionText}>QR</Text>
-            </Pressable>
+            {!isWeb && (
+              <Pressable
+                onPress={handleAddByQr}
+                style={({ pressed }) => [
+                  styles.quickActionBtn,
+                  pressed && styles.quickActionPressed,
+                ]}
+              >
+                <IconButton
+                  icon="qrcode-scan"
+                  size={actionIconSize - s(2)}
+                  iconColor={theme.colors.primary}
+                  style={styles.quickActionIcon}
+                />
+                <Text style={styles.quickActionText}>QR</Text>
+              </Pressable>
+            )}
 
             <Pressable
               onPress={handleAddBySearch}
