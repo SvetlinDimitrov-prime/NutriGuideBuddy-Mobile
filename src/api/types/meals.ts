@@ -11,7 +11,7 @@ export type MealView = {
   createdAt: string;
   updatedAt: string;
   totalCalories: number | null;
-  foods: MealFoodShortView[];
+  foodsCount: number;
 };
 
 export type MealCreateRequest = {

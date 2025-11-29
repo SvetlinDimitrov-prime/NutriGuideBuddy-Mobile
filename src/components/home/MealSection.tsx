@@ -1,9 +1,11 @@
 // MealSection.tsx
+import { useMealFoods } from '@/api/hooks/useMealFoods';
 import { useDeleteMeal } from '@/api/hooks/useMeals';
+import type { MealFoodView } from '@/api/types/mealFoods';
 import type { MealView } from '@/api/types/meals';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
@@ -23,12 +25,17 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
   const bp = useBreakpoints();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
   const deleteMealMutation = useDeleteMeal();
-
   const isWeb = Platform.OS === 'web';
 
   const totalCals = meal.totalCalories ?? 0;
-  const foods = useMemo(() => meal.foods ?? [], [meal.foods]);
-  const foodsCount = foods.length;
+
+  // from /meals – either dedicated count or fallback to preview list
+  const foodsCount =
+    (meal as any).foodsCount ??
+    (Array.isArray((meal as any).foods) ? (meal as any).foods.length : 0);
+
+  // full foods for this meal (from /mealFoods)
+  const { data: foods = [], isLoading: foodsLoading, error: foodsError } = useMealFoods(meal.id);
 
   const [expanded, setExpanded] = useState(false);
   const [mealDeleteOpen, setMealDeleteOpen] = useState(false);
@@ -133,10 +140,19 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
       {expanded && (
         <View style={styles.body}>
           <View style={styles.foodList}>
-            {foods.length === 0 ? (
+            {foodsLoading && <Text style={styles.emptyText}>Loading foods…</Text>}
+
+            {foodsError && !foodsLoading && (
+              <Text style={styles.emptyText}>Could not load foods.</Text>
+            )}
+
+            {!foodsLoading && !foodsError && foods.length === 0 && (
               <Text style={styles.emptyText}>No foods added yet.</Text>
-            ) : (
-              foods.map((food) => (
+            )}
+
+            {!foodsLoading &&
+              !foodsError &&
+              foods.map((food: MealFoodView) => (
                 <FoodRow
                   key={food.id}
                   mealId={meal.id}
@@ -144,8 +160,7 @@ export default function MealSection({ meal, twoCols, loading = false }: Props) {
                   twoCols={twoCols}
                   loading={busy}
                 />
-              ))
-            )}
+              ))}
           </View>
 
           <View style={styles.actionsRow}>
@@ -203,7 +218,6 @@ function makeStyles(
   const isSmall = bp.isSM || bp.isMD;
 
   return StyleSheet.create({
-    // ⬇ still just a flat row with a divider
     mealSection: {
       alignSelf: 'center',
       width: '100%',
@@ -280,7 +294,6 @@ function makeStyles(
       height: s(32),
     },
 
-    // ⬇ NEW: no filled background, just some spacing + a top divider
     body: {
       marginTop: vs(6),
       paddingTop: vs(6),
@@ -309,8 +322,7 @@ function makeStyles(
       paddingHorizontal: s(10),
       paddingVertical: vs(4),
       borderRadius: s(999),
-      backgroundColor: theme.colors.surface, // small pill button
-      // optional: subtle border
+      backgroundColor: theme.colors.surface,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: outline,
     },

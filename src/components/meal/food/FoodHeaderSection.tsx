@@ -1,18 +1,18 @@
+import type { MealFoodView } from '@/api/types/mealFoods';
+import FoodTierBadge from '@/components/FoodTierBadge';
 import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router } from 'expo-router';
 import { Platform, StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { IconButton, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
-import type { MealFoodView } from '@/api/types/mealFoods';
-import { FoodTierInline } from '@/components/meal/food/FoodTierInline';
 
 type Props = {
   name?: string;
   disabled?: boolean;
   onEditToggle: () => void;
   onDelete: () => void;
-  food?: Partial<MealFoodView> | null; // 🔹 new
+  food?: Partial<MealFoodView> | null;
 };
 
 export function FoodHeaderSection({ name, disabled, onEditToggle, onDelete, food }: Props) {
@@ -35,7 +35,11 @@ export function FoodHeaderSection({ name, disabled, onEditToggle, onDelete, food
             {name ?? 'Food'}
           </Text>
 
-          <FoodTierInline food={food} />
+          {food && (
+            <View style={styles.tierWrap}>
+              <FoodTierBadge food={food} variant="subtitle" />
+            </View>
+          )}
         </View>
 
         <View style={styles.actionsRow}>
@@ -86,6 +90,7 @@ function makeStyles(theme: MD3Theme, bp: any) {
     titleRow: ViewStyle;
     titleCol: ViewStyle;
     foodTitle: TextStyle;
+    tierWrap: ViewStyle;
     actionsRow: ViewStyle;
     actionBtn: ViewStyle;
   };
@@ -121,6 +126,10 @@ function makeStyles(theme: MD3Theme, bp: any) {
             textAlignVertical: 'center',
           } as TextStyle)
         : null),
+    },
+
+    tierWrap: {
+      marginTop: vs(2),
     },
 
     actionsRow: {

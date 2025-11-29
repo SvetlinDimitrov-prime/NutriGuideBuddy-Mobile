@@ -1,11 +1,10 @@
-// src/hooks/useFoodServingState.ts
 import type {
   FoodComponentGroup,
   FoodComponentLabel,
   ServingView,
   Unit,
 } from '@/api/types/mealFoods';
-import { FOOD_COMPONENT_LABEL_DISPLAY, FOOD_COMPONENT_META } from '@/api/utils/foodEnums';
+import { FOOD_COMPONENT_META } from '@/api/utils/foodEnums';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type ComponentLike = {
@@ -27,6 +26,21 @@ export type FoodForServing = {
 };
 
 type ComputedTotals = { grams: number; kcal: number };
+
+/** Convert an amount to grams, when possible. */
+function toGrams(amount: number, unit: Unit): number {
+  if (!Number.isFinite(amount)) return 0;
+  switch (unit) {
+    case 'G':
+      return amount;
+    case 'MG':
+      return amount / 1000;
+    case 'MCG':
+      return amount / 1_000_000;
+    default:
+      return 0;
+  }
+}
 
 export function useFoodServingState<T extends FoodForServing | null>(food: T) {
   const [editOpen, setEditOpen] = useState(false);
@@ -149,23 +163,20 @@ export function useFoodServingState<T extends FoodForServing | null>(food: T) {
     return c.group ?? meta?.group ?? 'OTHER';
   };
 
-  // ---- macros: use derived group so it works for both views + OFF ----
+  // ---- macros: use specific labels + unit-aware grams ----
   const macros = useMemo(() => {
     if (!food) return { carbs: 0, fats: 0, protein: 0, total: 0 };
 
-    const comps = scaledComponentsAll;
+    const findGrams = (label: FoodComponentLabel): number => {
+      const comp = scaledComponentsAll.find((c) => c.name === label);
+      if (!comp || comp.amount == null) return 0;
+      return toGrams(comp.amount, comp.unit);
+    };
 
-    const sumWhere = (predicate: (c: ComponentLike) => boolean) =>
-      comps.filter(predicate).reduce((acc, c) => acc + (c.amount ?? 0), 0);
-
-    const carbs = sumWhere((c) => getGroupFor(c) === 'CARBS');
-
-    const fats = sumWhere((c) => {
-      const g = getGroupFor(c);
-      return g === 'FATS' || g === 'FATTY_ACIDS';
-    });
-
-    const protein = sumWhere((c) => getGroupFor(c) === 'PROTEIN');
+    // Use primary macro components only
+    const carbs = findGrams('CARBOHYDRATE');
+    const fats = findGrams('FAT');
+    const protein = findGrams('PROTEIN');
 
     const total = carbs + fats + protein;
 
@@ -186,8 +197,8 @@ export function useFoodServingState<T extends FoodForServing | null>(food: T) {
   // remove energy + headline macros from the accordion list
   const filteredComponents = useMemo(() => {
     return scaledComponentsAll.filter((c) => {
-      const label = FOOD_COMPONENT_LABEL_DISPLAY[c.name];
-      return !['Energy', 'CARBOHYDRATE', 'FAT', 'PROTEIN'].includes(label);
+      // filter by component *name*, not display label
+      return !['ENERGY', 'CARBOHYDRATE', 'FAT', 'PROTEIN'].includes(c.name);
     });
   }, [scaledComponentsAll]);
 

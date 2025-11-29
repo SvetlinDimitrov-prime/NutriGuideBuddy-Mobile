@@ -90,7 +90,7 @@ export default function FoodModal() {
         <View style={styles.body}>
           <FoodHeaderSection
             name={food?.name}
-            food={food} // 🔹 add this
+            food={food}
             disabled={!food || busyDelete}
             onEditToggle={() => setEditOpen((v) => !v)}
             onDelete={onDeleteFood}
