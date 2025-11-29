@@ -90,6 +90,7 @@ export default function FoodModal() {
         <View style={styles.body}>
           <FoodHeaderSection
             name={food?.name}
+            food={food} // 🔹 add this
             disabled={!food || busyDelete}
             onEditToggle={() => setEditOpen((v) => !v)}
             onDelete={onDeleteFood}
@@ -131,7 +132,6 @@ export default function FoodModal() {
                 macros={macros}
                 macroPercents={macroPercents}
               />
-
               <AboutSection info={food.info} largeInfo={food.largeInfo} picture={food.picture} />
               <NutritionAccordions grouped={grouped} />
             </>

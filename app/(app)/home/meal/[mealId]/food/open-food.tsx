@@ -108,6 +108,7 @@ export default function OpenFoodFactsFoodScreen() {
         <View style={styles.body}>
           <FoodHeaderOffSection
             name={food?.name}
+            food={food}
             disabled={!food || addBusy}
             onEditToggle={() => setEditOpen((v) => !v)}
             onAdd={onAddFood}
@@ -145,7 +146,6 @@ export default function OpenFoodFactsFoodScreen() {
                 macros={macros}
                 macroPercents={macroPercents}
               />
-
               <AboutSection info={food.info} largeInfo={food.largeInfo} picture={food.picture} />
               <NutritionAccordions grouped={grouped} />
             </>

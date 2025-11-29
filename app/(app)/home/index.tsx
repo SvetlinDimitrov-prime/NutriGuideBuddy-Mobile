@@ -1,16 +1,15 @@
-// src/app/home/index.tsx (or wherever this file lives)
 import { useMeals } from '@/api/hooks/useMeals';
 import type { MealFilter } from '@/api/types/meals';
-import DateHeader from '@/components/statistics/DateHeader';
 import MealSection from '@/components/home/MealSection';
 import PageShell from '@/components/PageShell';
-import { useBreakpoints, useResponsiveStyles, useResponsiveValue } from '@/theme/responsive';
+import DateHeader from '@/components/statistics/DateHeader';
+import { useBreakpoints, useResponsiveStyles } from '@/theme/responsive';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { Button, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
-import { StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native';
 
 function formatYMD(d: Date) {
   const yyyy = d.getFullYear();
@@ -23,12 +22,6 @@ export default function Home() {
   const theme = useTheme();
   const bp = useBreakpoints();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
-
-  const headlineVariant = useResponsiveValue({
-    base: 'headlineSmall',
-    lg: 'headlineMedium',
-    xl: 'headlineLarge',
-  }) as 'headlineSmall' | 'headlineMedium' | 'headlineLarge';
 
   const twoCols = bp.isLG || bp.isXL;
 
@@ -58,11 +51,7 @@ export default function Home() {
   return (
     <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
       <View style={styles.headerWrap}>
-        <DateHeader
-          date={selectedDate}
-          onChange={setSelectedDate}
-          headlineVariant={headlineVariant}
-        />
+        <DateHeader date={selectedDate} onChange={setSelectedDate} />
       </View>
 
       {loadingMeals && <Text style={styles.statusText}>Loading meals…</Text>}

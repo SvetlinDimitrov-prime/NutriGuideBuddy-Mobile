@@ -27,6 +27,8 @@ services:
       MAIL_FROM_NAME: NutriGuideBuddy
 
       CLIENT_WEB: http://localhost:8081
+      GOOGLE_WEB_CLIENT_ID: 528691887404-3hs8v7tpgdgg474n0ilp7mefs72basv8.apps.googleusercontent.com
+      GOOGLE_IOS_CLIENT_ID: 528691887404-38446jejsgcjvqbu66brcd2s7obh082g.apps.googleusercontent.com
     ports:
       - '8080:8080'
     networks:

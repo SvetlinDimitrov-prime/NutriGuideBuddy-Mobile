@@ -11,23 +11,25 @@
       "typedRoutes": true
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nutriguidebuddy.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.NutriGuideBuddyMobile"
+      "package": "com.anonymous.NutriGuideBuddyMobile",
+      "permissions": ["android.permission.CAMERA"]
     },
     "web": {
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store",
-      "expo-barcode-scanner"
-    ],
-    "assetBundlePatterns": [
-      "**/*"
-    ]
+    "plugins": ["expo-router", "expo-secure-store", "expo-barcode-scanner", "expo-web-browser"],
+    "assetBundlePatterns": ["**/*"],
+    "extra": {
+      "router": {}
+    }
   }
 }

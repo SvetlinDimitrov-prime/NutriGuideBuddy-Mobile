@@ -1,7 +1,7 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,19 +9,14 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Button, Checkbox, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Menu, IconButton, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ms, s, vs } from 'react-native-size-matters';
-import { z } from 'zod';
 
-import { useLogin } from '@/api/hooks/useAuth';
+import { useDevLogin, useGoogleLogin } from '@/api/hooks/useAuth';
+import { DEV_USER_KEYS, DevUserKey } from '@/api/types/auth';
 
-const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required.').email('Please enter a valid email address.'),
-  password: z.string().min(4, 'Password must be at least 4 characters long.'),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
   const theme = useTheme();
@@ -30,30 +25,67 @@ export default function Login() {
 
   const containerStyle = useMemo(() => [{ maxWidth: isWide ? s(520) : s(480) }], [isWide]);
 
-  const [remember, setRemember] = useState(true);
-  const [showPass, setShowPass] = useState(false);
+  const googleLoginMutation = useGoogleLogin();
+  const devLoginMutation = useDevLogin();
 
-  const loginMutation = useLogin();
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting, isValid },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    mode: 'onChange',
+  // ---- Google auth request ----
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: Platform.select({
+      web: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
+      default: undefined,
+    }),
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   });
 
-  const interactionDisabled = isSubmitting || loginMutation.isPending;
-  const disableButton = interactionDisabled || !isValid;
+  // just for debugging – see what redirect URI Expo uses
+  useEffect(() => {
+    if (request?.redirectUri) {
+      console.log('Google redirect URI:', request.redirectUri);
+    }
+  }, [request]);
 
-  const onSubmit = (values: LoginForm) => {
+  // ---- DEV user selector state ----
+  const [devUser, setDevUser] = useState<DevUserKey>('USER1');
+  const [menuVisible, setMenuVisible] = useState(false);
+  const devUserLabel = useMemo(() => devUser.replace('USER', 'User '), [devUser]);
+
+  // --- prevent multiple calls with the same idToken ---
+  const handledTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (response?.type !== 'success') return;
+
+    const idToken = response.params.id_token as string | undefined;
+    if (!idToken) return;
+
+    // if we've already handled this token, do nothing
+    if (handledTokenRef.current === idToken) {
+      return;
+    }
+    handledTokenRef.current = idToken;
+
+    googleLoginMutation.mutate(idToken, {
+      onSuccess: () => {
+        router.replace('/home');
+      },
+    });
+  }, [response, googleLoginMutation]);
+
+  const interactionDisabled = googleLoginMutation.isPending || devLoginMutation.isPending;
+
+  const handleGoogleLogin = () => {
+    if (!request || interactionDisabled) return;
+    promptAsync();
+  };
+
+  const handleDevLogin = (userKey: DevUserKey) => {
     if (interactionDisabled) return;
-    loginMutation.mutate({ email: values.email, password: values.password });
+    devLoginMutation.mutate(userKey, {
+      onSuccess: () => {
+        router.replace('/home');
+      },
+    });
   };
 
   return (
@@ -66,119 +98,91 @@ export default function Login() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.center}>
-          {/* header */}
+          {/* HEADER */}
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.title} accessibilityRole="header">
-              Welcome back
+              Welcome
             </Text>
             <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-              Sign in to continue
+              Sign in with your Google account
             </Text>
           </View>
 
-          {/* form */}
+          {/* CONTENT */}
           <View style={[styles.stack, containerStyle]}>
-            {/* EMAIL */}
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <>
-                  <TextInput
-                    mode="outlined"
-                    label="Email"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    left={<TextInput.Icon icon="email" />}
-                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
-                    error={!!errors.email}
-                    editable={!interactionDisabled}
-                  />
-                  {!!errors.email && (
-                    <HelperText type="error" visible style={styles.helper}>
-                      {errors.email.message}
-                    </HelperText>
-                  )}
-                </>
-              )}
-            />
-
-            {/* PASSWORD */}
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <>
-                  <TextInput
-                    mode="outlined"
-                    label="Password"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    secureTextEntry={!showPass}
-                    left={<TextInput.Icon icon="lock" />}
-                    right={
-                      <TextInput.Icon
-                        icon={showPass ? 'eye-off' : 'eye'}
-                        onPress={() => {
-                          if (!interactionDisabled) setShowPass((v) => !v);
-                        }}
-                      />
-                    }
-                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
-                    error={!!errors.password}
-                    editable={!interactionDisabled}
-                  />
-                  {!!errors.password && (
-                    <HelperText type="error" visible style={styles.helper}>
-                      {errors.password.message}
-                    </HelperText>
-                  )}
-                </>
-              )}
-            />
-
-            {/* remember only (forgot password removed) */}
-            <View style={styles.rowLeft}>
-              <Checkbox.Item
-                status={remember ? 'checked' : 'unchecked'}
-                onPress={() => {
-                  if (!interactionDisabled) setRemember((v) => !v);
-                }}
-                label="Remember me"
-                position="leading"
-                style={styles.checkboxItem}
-                disabled={interactionDisabled}
-              />
-            </View>
-
-            {/* submit */}
+            {/* GOOGLE LOGIN */}
             <Button
               mode="contained"
-              onPress={handleSubmit(onSubmit)}
-              disabled={disableButton}
-              loading={interactionDisabled}
-              style={styles.button}
+              icon="google"
+              onPress={handleGoogleLogin}
+              disabled={!request || interactionDisabled}
+              loading={googleLoginMutation.isPending}
+              style={styles.googleButton}
             >
-              Log in
+              Continue with Google
             </Button>
 
-            {/* create account */}
-            <View style={styles.createWrap}>
-              <Text style={styles.muted}>Don’t have an account? </Text>
-              {interactionDisabled ? (
-                <Text style={[styles.link, { color: theme.colors.onSurfaceDisabled }]}>
-                  Create one
+            {/* DEV-ONLY SECTION (compact) */}
+            {__DEV__ && (
+              <View style={[styles.devCard, { backgroundColor: theme.colors.surface }]}>
+                <View style={styles.devHeaderRow}>
+                  <View
+                    style={[styles.devBadge, { backgroundColor: theme.colors.primaryContainer }]}
+                  >
+                    <Text style={[styles.devBadgeText, { color: theme.colors.onPrimaryContainer }]}>
+                      DEV
+                    </Text>
+                  </View>
+                  <Text style={[styles.devTitle, { color: theme.colors.onSurface }]}>
+                    Quick login as seeded user
+                  </Text>
+                </View>
+
+                <Text style={[styles.devHint, { color: theme.colors.onSurfaceVariant }]}>
+                  Uses one of the predefined demo accounts. This is only available in development
+                  builds.
                 </Text>
-              ) : (
-                <Link href="/(auth)/register">
-                  <Text style={[styles.link, { color: theme.colors.primary }]}>Create one</Text>
-                </Link>
-              )}
-            </View>
+
+                <View style={styles.devRow}>
+                  <Button
+                    mode="outlined"
+                    icon="account"
+                    onPress={() => handleDevLogin(devUser)}
+                    disabled={interactionDisabled}
+                    loading={devLoginMutation.isPending && devLoginMutation.variables === devUser}
+                    style={styles.devLoginButton}
+                    contentStyle={styles.devLoginButtonContent}
+                    labelStyle={styles.devLoginButtonLabel}
+                  >
+                    Continue as {devUserLabel}
+                  </Button>
+
+                  <Menu
+                    visible={menuVisible}
+                    onDismiss={() => setMenuVisible(false)}
+                    anchor={
+                      <IconButton
+                        icon="chevron-down"
+                        size={22}
+                        onPress={() => setMenuVisible(true)}
+                        disabled={interactionDisabled}
+                      />
+                    }
+                  >
+                    {DEV_USER_KEYS.map((key) => (
+                      <Menu.Item
+                        key={key}
+                        title={key.replace('USER', 'User ')}
+                        onPress={() => {
+                          setDevUser(key);
+                          setMenuVisible(false);
+                        }}
+                      />
+                    ))}
+                  </Menu>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -212,26 +216,54 @@ const styles = StyleSheet.create({
   stack: {
     width: '100%',
     alignSelf: 'center',
-    gap: s(10),
+    gap: s(16),
   },
-  input: {
-    fontSize: ms(16, 0.2),
+  googleButton: { borderRadius: s(12), marginTop: vs(6) },
+  devCard: {
+    marginTop: vs(10),
+    borderRadius: s(14),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(10),
+    elevation: 2,
   },
-  helper: { marginTop: -vs(6) },
-  rowLeft: {
-    marginTop: vs(2),
+  devHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    gap: s(8),
+    marginBottom: vs(2),
   },
-  checkboxItem: { paddingLeft: 0 },
-  button: { borderRadius: s(12), marginTop: vs(6) },
-  createWrap: {
+  devBadge: {
+    paddingHorizontal: s(8),
+    paddingVertical: vs(2),
+    borderRadius: s(999),
+  },
+  devBadgeText: {
+    fontSize: ms(10),
+    fontWeight: '600',
+    letterSpacing: 0.4,
+  },
+  devTitle: {
+    fontSize: ms(13, 0.2),
+    fontWeight: '600',
+  },
+  devHint: {
+    fontSize: ms(11.5, 0.2),
+    opacity: 0.85,
+    marginTop: vs(2),
+  },
+  devRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: s(4),
+    alignItems: 'center',
     marginTop: vs(10),
   },
-  muted: { opacity: 0.8 },
-  link: { textDecorationLine: 'underline' },
+  devLoginButton: {
+    flex: 1,
+    borderRadius: s(999),
+  },
+  devLoginButtonContent: {
+    justifyContent: 'flex-start',
+  },
+  devLoginButtonLabel: {
+    fontSize: ms(14, 0.2),
+  },
 });

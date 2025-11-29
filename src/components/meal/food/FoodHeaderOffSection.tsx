@@ -4,15 +4,18 @@ import { Platform, StyleSheet, View, type TextStyle, type ViewStyle } from 'reac
 import type { MD3Theme } from 'react-native-paper';
 import { IconButton, Text, useTheme } from 'react-native-paper';
 import { ms, s, vs } from 'react-native-size-matters';
+import type { MealFoodView } from '@/api/types/mealFoods';
+import { FoodTierInline } from '@/components/meal/food/FoodTierInline';
 
 type Props = {
   name?: string;
   disabled?: boolean;
   onEditToggle: () => void;
   onAdd: () => void;
+  food?: Partial<MealFoodView> | null;
 };
 
-export function FoodHeaderOffSection({ name, disabled, onEditToggle, onAdd }: Props) {
+export function FoodHeaderOffSection({ name, disabled, onEditToggle, onAdd, food }: Props) {
   const theme = useTheme();
   const bp = useBreakpoints();
   const styles = useResponsiveStyles(theme, bp, makeStyles);
@@ -20,19 +23,22 @@ export function FoodHeaderOffSection({ name, disabled, onEditToggle, onAdd }: Pr
   return (
     <View style={styles.headerBlock}>
       <View style={styles.titleRow}>
-        <Text
-          variant="headlineSmall"
-          numberOfLines={2}
-          ellipsizeMode="tail"
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
-          style={styles.foodTitle}
-        >
-          {name ?? 'Food'}
-        </Text>
+        <View style={styles.titleCol}>
+          <Text
+            variant="headlineSmall"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={styles.foodTitle}
+          >
+            {name ?? 'Food'}
+          </Text>
+
+          <FoodTierInline food={food} />
+        </View>
 
         <View style={styles.actionsRow}>
-          {/* Edit servings */}
           <IconButton
             icon="square-edit-outline"
             onPress={onEditToggle}
@@ -42,8 +48,6 @@ export function FoodHeaderOffSection({ name, disabled, onEditToggle, onAdd }: Pr
             iconColor={theme.colors.onSurface}
             accessibilityLabel="Edit serving"
           />
-
-          {/* Add to meal */}
           <IconButton
             icon="plus"
             onPress={onAdd}
@@ -53,8 +57,6 @@ export function FoodHeaderOffSection({ name, disabled, onEditToggle, onAdd }: Pr
             iconColor={theme.colors.primary}
             accessibilityLabel="Add food"
           />
-
-          {/* Close */}
           <IconButton
             icon="close"
             onPress={() => router.back()}
@@ -82,6 +84,7 @@ function makeStyles(theme: MD3Theme, bp: any) {
   type Styles = {
     headerBlock: ViewStyle;
     titleRow: ViewStyle;
+    titleCol: ViewStyle;
     foodTitle: TextStyle;
     actionsRow: ViewStyle;
     actionBtn: ViewStyle;
@@ -102,10 +105,14 @@ function makeStyles(theme: MD3Theme, bp: any) {
       gap: s(8),
     },
 
-    foodTitle: {
+    titleCol: {
       flex: 1,
       minWidth: 0,
       flexShrink: 1,
+      gap: vs(2),
+    },
+
+    foodTitle: {
       fontSize: titleFontSize,
       lineHeight: titleLineHeight,
       ...(isAndroid
