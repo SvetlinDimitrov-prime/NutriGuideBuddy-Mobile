@@ -11,7 +11,7 @@ import { useUpdateUserDetails } from '@/api/hooks/useUserDetails';
 import type { UserDetailsRequest } from '@/api/types/userDetails';
 import { UserDetailsFormValues, userDetailsSchema } from '@/api/validation/userDetailsSchema';
 
-import { AuthSteps } from '@/components/AuthSteps';
+import { AuthSteps } from '@/components/auth/complete-profile/AuthSteps';
 import PageShell from '@/components/PageShell';
 import { ChoiceOption } from '@/components/auth/complete-profile/ChoiceChips';
 import NumericFieldsSection from '@/components/auth/complete-profile/NumericFieldsSection';

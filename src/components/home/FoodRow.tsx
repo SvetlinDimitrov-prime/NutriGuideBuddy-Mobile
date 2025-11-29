@@ -70,7 +70,7 @@ export default function FoodRow({ mealId, food, twoCols, loading = false }: Prop
         {/* RIGHT – kcal + tier badge (badge computes tier itself) */}
         <View style={styles.rightColumn}>
           <Text style={styles.kcalText}>{food.calorieAmount.toFixed(0)} kcal</Text>
-          <FoodTierBadge food={food} showLabel={false} />
+          <FoodTierBadge food={food} />
         </View>
       </View>
     </Pressable>

@@ -1,6 +1,7 @@
 import { useLogout } from '@/api/hooks/useAuth';
 import { useCurrentUserWithDetails, useDeleteUser } from '@/api/hooks/useUsers';
 import AppModal from '@/components/AppModal';
+import PageHeader from '@/components/PageHeader';
 import PageShell from '@/components/PageShell';
 import ProfileDetailsSection from '@/components/settings/ProfileDetailsSection';
 import ProfileIdentitySection from '@/components/settings/ProfileIdentitySection';
@@ -57,11 +58,8 @@ export default function SettingsScreen() {
   return (
     <>
       <PageShell bottomExtra={vs(40)} contentStyle={styles.content}>
-        <View style={styles.header}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Settings
-          </Text>
-          <Text style={styles.subtitle}>Manage your profile and account.</Text>
+        <View style={styles.headerWrap}>
+          <PageHeader title="Settings" subtitle="Manage your profile and account." />
         </View>
 
         {isLoading && <Text style={styles.statusText}>Loading your account details…</Text>}
@@ -164,9 +162,7 @@ function makeStyles(
 
   type Styles = {
     content: ViewStyle;
-    header: ViewStyle;
-    title: TextStyle;
-    subtitle: TextStyle;
+    headerWrap: ViewStyle;
     statusText: TextStyle;
     section: ViewStyle;
     sectionTitle: TextStyle;
@@ -182,21 +178,11 @@ function makeStyles(
       gap: vs(16),
     },
 
-    header: {
-      alignItems: 'flex-start',
-      marginBottom: vs(8),
+    headerWrap: {
       alignSelf: 'center',
       width: '100%',
       maxWidth,
-    },
-    title: {
-      textAlign: 'left',
-      marginTop: vs(2),
-    },
-    subtitle: {
-      marginTop: vs(4),
-      color: theme.colors.onSurfaceVariant,
-      fontSize: ms(14, 0.2),
+      marginBottom: vs(4),
     },
 
     statusText: {

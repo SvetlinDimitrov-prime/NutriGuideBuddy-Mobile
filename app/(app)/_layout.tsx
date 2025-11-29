@@ -15,7 +15,6 @@ import {
   type DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 
-// ✅ Safe area for notch / camera island (TOP only)
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function HeaderTitle() {
@@ -41,15 +40,18 @@ const NutrientsIcon = ({ color, size }: IconProps) => (
 const TrendsIcon = ({ color, size }: IconProps) => (
   <Ionicons name="stats-chart-outline" color={color} size={clamp(size)} />
 );
-// ✅ new Progress icon
 const ProgressIcon = ({ color, size }: IconProps) => (
   <Ionicons name="trending-up-outline" color={color} size={clamp(size)} />
+);
+// Info icon for the Info page
+const InfoIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="information-circle-outline" color={color} size={clamp(size)} />
 );
 
 // --- route grouping ---
 const MAIN_ROUTES = ['home'] as const;
 const STATS_ROUTES = ['calories', 'nutrients', 'trends', 'progress'] as const;
-const OTHER_ROUTES = ['settings'] as const;
+const OTHER_ROUTES = ['info', 'settings'] as const;
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
   const theme = useTheme();
@@ -104,7 +106,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         <View style={styles.sectionBlock}>{MAIN_ROUTES.map(renderItem)}</View>
 
         <Text style={styles.sectionTitle}>Statistics</Text>
-        <Text style={styles.sectionSubtitle}>Insights & trends over time</Text>
+        <Text style={styles.sectionSubtitle}>Insights &amp; trends over time</Text>
         <View style={styles.sectionBlock}>{STATS_ROUTES.map(renderItem)}</View>
 
         <Text style={styles.sectionTitle}>Other</Text>
@@ -178,6 +180,10 @@ export default function AppLayout() {
       <Drawer.Screen name="nutrients" options={{ title: 'Nutrients', drawerIcon: NutrientsIcon }} />
       <Drawer.Screen name="trends" options={{ title: 'Trends', drawerIcon: TrendsIcon }} />
       <Drawer.Screen name="progress" options={{ title: 'Progress', drawerIcon: ProgressIcon }} />
+
+      {/* Info hub */}
+      <Drawer.Screen name="info" options={{ title: 'Info', drawerIcon: InfoIcon }} />
+
       <Drawer.Screen name="settings" options={{ title: 'Settings', drawerIcon: SettingsIcon }} />
     </Drawer>
   );
