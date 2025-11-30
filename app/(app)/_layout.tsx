@@ -43,15 +43,20 @@ const TrendsIcon = ({ color, size }: IconProps) => (
 const ProgressIcon = ({ color, size }: IconProps) => (
   <Ionicons name="trending-up-outline" color={color} size={clamp(size)} />
 );
-// Info icon for the Info page
+// Info icon
 const InfoIcon = ({ color, size }: IconProps) => (
   <Ionicons name="information-circle-outline" color={color} size={clamp(size)} />
+);
+// NEW: Diets icon
+const DietsIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="restaurant-outline" color={color} size={clamp(size)} />
 );
 
 // --- route grouping ---
 const MAIN_ROUTES = ['home'] as const;
 const STATS_ROUTES = ['calories', 'nutrients', 'trends', 'progress'] as const;
-const OTHER_ROUTES = ['info', 'settings'] as const;
+// include "diets" in Other
+const OTHER_ROUTES = ['info', 'diets', 'settings'] as const;
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
   const theme = useTheme();
@@ -183,6 +188,9 @@ export default function AppLayout() {
 
       {/* Info hub */}
       <Drawer.Screen name="info" options={{ title: 'Info', drawerIcon: InfoIcon }} />
+
+      {/* Diets */}
+      <Drawer.Screen name="diets" options={{ title: 'Diets', drawerIcon: DietsIcon }} />
 
       <Drawer.Screen name="settings" options={{ title: 'Settings', drawerIcon: SettingsIcon }} />
     </Drawer>

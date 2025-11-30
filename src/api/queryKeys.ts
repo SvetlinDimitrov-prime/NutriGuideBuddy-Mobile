@@ -1,7 +1,6 @@
 import type { UserFilter } from '@/api/types/user';
 import { MealFoodFilter } from './types/mealFoods';
 import { MealFilter } from './types/meals';
-import { OpenFoodFactsSearchParams } from './types/openFoodFacts';
 import { FoodComponentRequest, TrackerRequest } from './types/tracker';
 import type { UserDetailsSnapshotFilter } from './types/userDetailsSnapshot';
 
@@ -70,4 +69,10 @@ export const openFoodFactsKeys = {
   search: (name: string, size: number = 20) =>
     [...openFoodFactsKeys.all, 'search', name, size] as const,
   byId: (id: string) => [...openFoodFactsKeys.all, 'byId', id] as const,
+};
+
+export const customRdiKeys = {
+  root: ['customRdi'] as const,
+  all: () => [...customRdiKeys.root, 'all'] as const,
+  byId: (id: number) => [...customRdiKeys.root, 'byId', id] as const,
 };
